@@ -321,7 +321,7 @@ fn generate_report_rows(
                     haircare_tehnic_q4: 0.0,
                 });
 
-            if value > 0.0 {
+            if value != 0.0 {
                 let quarter = parse_quarter(&date_str, year);
 
                 if let Some(q) = quarter {
@@ -459,7 +459,7 @@ fn generate_report_rows(
                         haircare_tehnic_q4: 0.0,
                     });
 
-                if value > 0.0 {
+                if value != 0.0 {
                     let date = parse_date_flexible(&date_str);
                     if let Some(d) = date {
                         let month = d.month() as u32;
@@ -869,7 +869,7 @@ pub fn generate_epp_report(
                 });
 
                 // Only add value if it's non-zero and date matches
-                if value > 0.0 {
+                if value != 0.0 {
                     let quarter = parse_quarter(&date_str, report_year);
 
                     if let Some(q) = quarter {
@@ -1050,7 +1050,7 @@ pub fn generate_epp_report(
                     });
 
                     // Only add value if it's non-zero and date parses
-                    if value > 0.0 {
+                    if value != 0.0 {
                         let date = parse_date_flexible(&date_str);
 
                         if let Some(d) = date {
