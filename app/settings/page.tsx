@@ -779,7 +779,7 @@ export default function SettingsPage() {
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             <span>Ledgerly</span>
                             <span className="w-px h-3 bg-border/50" />
-                            <span className="font-data">Version 1.1.3</span>
+                            <span className="font-data">Version 1.1.4</span>
                         </div>
                     </section>
                 </div>
