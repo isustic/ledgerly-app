@@ -31,12 +31,12 @@ export function UpdateDialog({ open, update, onClose }: UpdateDialogProps) {
   const [percent, setPercent] = useState<number | null>(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (!open) return;
+  const handleClose = () => {
     setPhase('idle');
     setPercent(null);
     setError('');
-  }, [open]);
+    onClose();
+  };
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -73,7 +73,7 @@ export function UpdateDialog({ open, update, onClose }: UpdateDialogProps) {
   const busy = phase === 'downloading';
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && !busy && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && !busy && handleClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Update Available</DialogTitle>
@@ -102,7 +102,7 @@ export function UpdateDialog({ open, update, onClose }: UpdateDialogProps) {
             <Button onClick={handleRestart}>Restart Now</Button>
           ) : (
             <>
-              <Button variant="outline" onClick={onClose} disabled={busy}>
+              <Button variant="outline" onClick={handleClose} disabled={busy}>
                 Later
               </Button>
               <Button onClick={handleInstall} disabled={busy}>
