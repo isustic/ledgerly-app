@@ -22,6 +22,14 @@ const navItems = [
 export function Sidebar() {
     const pathname = usePathname();
     const [collapsed, setCollapsed] = useState(false);
+    const [appVersion, setAppVersion] = useState("");
+
+    useEffect(() => {
+        import("@tauri-apps/api/app")
+            .then((m) => m.getVersion())
+            .then(setAppVersion)
+            .catch(() => {});
+    }, []);
 
     // Load collapsed state from localStorage on mount
     useEffect(() => {
@@ -177,7 +185,7 @@ export function Sidebar() {
                         collapsed ? "w-0 h-0 opacity-0" : "opacity-100"
                     )}>
                         <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-body">Version</p>
-                        <p className="text-xs font-data text-muted-foreground">v1.1.2</p>
+                        <p className="text-xs font-data text-muted-foreground">{appVersion && `v${appVersion}`}</p>
                     </div>
 
                     <div className={cn(
