@@ -142,6 +142,14 @@ export default function SettingsPage() {
     const { theme, setTheme } = useTheme();
     const [stats, setStats] = useState<UsageStats | null>(null);
     const [activity, setActivity] = useState<ActivityDay[]>([]);
+    const [appVersion, setAppVersion] = useState('');
+
+    useEffect(() => {
+        import('@tauri-apps/api/app')
+            .then((m) => m.getVersion())
+            .then(setAppVersion)
+            .catch(() => {});
+    }, []);
     const [queryHistory, setQueryHistory] = useState<QueryEntry[]>([]);
     const [favorites, setFavorites] = useState<Favorite[]>([]);
     const [datasets, setDatasets] = useState<Dataset[]>([]);
@@ -779,7 +787,7 @@ export default function SettingsPage() {
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             <span>Ledgerly</span>
                             <span className="w-px h-3 bg-border/50" />
-                            <span className="font-data">Version 1.1.4</span>
+                            <span className="font-data">Version {appVersion}</span>
                         </div>
                     </section>
                 </div>
