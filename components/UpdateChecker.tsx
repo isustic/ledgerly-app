@@ -1,41 +1,19 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { UpdateDialog } from '@/components/UpdateDialog';
+import { UpdateDialog, type UpdateInfo } from '@/components/UpdateDialog';
+import { safeInvoke } from '@/lib/tauri';
 
 export function UpdateChecker() {
-    const [updateAvailable, setUpdateAvailable] = useState(false);
-    const [updateVersion, setUpdateVersion] = useState('');
+    const [update, setUpdate] = useState<UpdateInfo | null>(null);
 
     useEffect(() => {
-        const checkForUpdates = async () => {
-            try {
-                const { invoke } = await import('@tauri-apps/api/core');
-                const version = await invoke<string | null>('check_for_updates');
-                if (version) {
-                    setUpdateVersion(version);
-                    setUpdateAvailable(true);
-                }
-            } catch (error) {
-                // Ignore the error if it's the specific macos one or if not in Tauri
-                if (error && typeof error === 'string' && error.includes("does not support updates")) {
-                    return;
-                }
-                // Silently ignore when not in Tauri context
-                if (error && typeof error === 'string' && error.includes("Unknown command")) {
-                    return;
-                }
-            }
-        };
-
-        checkForUpdates();
+        safeInvoke<UpdateInfo | null>('check_for_updates')
+            .then((info) => setUpdate(info))
+            .catch(() => {
+                // Not running in Tauri, offline, or no release published yet
+            });
     }, []);
 
-    return (
-        <UpdateDialog
-            open={updateAvailable}
-            version={updateVersion}
-            onClose={() => setUpdateAvailable(false)}
-        />
-    );
+    return <UpdateDialog open={update !== null} update={update} onClose={() => setUpdate(null)} />;
 }

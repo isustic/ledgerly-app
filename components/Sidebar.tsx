@@ -74,7 +74,7 @@ export function Sidebar() {
                     collapsed ? "justify-center w-full group" : "gap-2.5"
                 )}>
                     <div className="w-9 h-9 flex items-center justify-center shrink-0">
-                        <img src="/logo.png" alt="Sift Logo" className="w-full h-full object-contain drop-shadow-sm group-hover:opacity-0 transition-opacity duration-200" />
+                        <img src="/logo.png" alt="Ledgerly Logo" className="w-full h-full object-contain drop-shadow-sm group-hover:opacity-0 transition-opacity duration-200" />
                     </div>
                     <div className={cn(
                         "transition-opacity duration-200 overflow-hidden",
@@ -82,7 +82,7 @@ export function Sidebar() {
                     )}>
                         <div>
                             <span className="text-base font-medium tracking-tight text-gradient-botanical font-display block">
-                                Sift
+                                Ledgerly
                             </span>
                             <span className="text-[9px] text-muted-foreground/60 uppercase tracking-[0.2em] font-body block">
                                 Data Refined

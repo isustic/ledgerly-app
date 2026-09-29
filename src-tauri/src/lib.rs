@@ -105,6 +105,7 @@ pub fn run() {
             commands::client_combinations::update_client_combination,
             commands::client_combinations::delete_client_combination,
             commands::updater::check_for_updates,
+            commands::updater::install_update,
             commands::updater::restart_app,
         ])
         .run(tauri::generate_context!())

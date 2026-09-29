@@ -16,7 +16,7 @@ pub mod ty_reports;
 pub mod updater;
 
 pub use blend::{run_blend_query, BlendConfig, BlendResult, BlendRow, MatchPair};
-pub use updater::{check_for_updates, restart_app};
+pub use updater::{check_for_updates, install_update, restart_app};
 pub use formula::{save_formula, list_formulas, delete_formula, test_formula, CalculatedField};
 pub use pivot::{run_pivot_query, PivotConfig, PivotResult, PivotValue, PivotRow, PivotFilter};
 pub use trends::{run_trends_query, TrendsConfig, TrendsResult, TrendMetrics};

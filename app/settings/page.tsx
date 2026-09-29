@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { safeInvoke, safeConfirm } from "@/lib/tauri";
 import { Button } from "@/components/ui/button";
+import { UpdateDialog, type UpdateInfo } from "@/components/UpdateDialog";
 import { Input } from "@/components/ui/input";
 import { Check, X } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
@@ -69,14 +70,16 @@ interface Dataset {
 function UpdateSettings() {
     const [checking, setChecking] = useState(false);
     const [status, setStatus] = useState<{ type: 'success' | 'info' | 'error'; message: string } | null>(null);
+    const [update, setUpdate] = useState<UpdateInfo | null>(null);
 
     const checkNow = async () => {
         setChecking(true);
         setStatus(null);
         try {
-            const version = await safeInvoke<string | null>('check_for_updates');
-            if (version) {
-                setStatus({ type: 'success', message: `Update to ${version} available! Restart to install.` });
+            const info = await safeInvoke<UpdateInfo | null>('check_for_updates');
+            if (info) {
+                setUpdate(info);
+                setStatus({ type: 'success', message: `Version ${info.version} is available.` });
             } else {
                 setStatus({ type: 'info', message: "You're on the latest version." });
             }
@@ -130,6 +133,7 @@ function UpdateSettings() {
                     <span>{status.message}</span>
                 </div>
             )}
+            <UpdateDialog open={update !== null} update={update} onClose={() => setUpdate(null)} />
         </div>
     );
 }
@@ -773,9 +777,9 @@ export default function SettingsPage() {
                     <section className="space-y-3 pt-4 border-t border-border/50">
                         <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">About</h2>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>Sift</span>
+                            <span>Ledgerly</span>
                             <span className="w-px h-3 bg-border/50" />
-                            <span className="font-data">Version 1.1.2</span>
+                            <span className="font-data">Version 1.1.3</span>
                         </div>
                     </section>
                 </div>
