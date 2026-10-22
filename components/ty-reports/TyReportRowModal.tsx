@@ -2,11 +2,12 @@
 
 import { translate } from "@/lib/i18n";
 import { useLanguage } from "@/components/LanguageProvider";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { safeInvoke } from "@/lib/tauri";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -14,20 +15,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Trash2, X, Save, Pencil } from "lucide-react";
+import { isNumericType, type TyColumn, type TyRow } from "@/components/ty-reports/types";
+import { Loader2, Pencil, RotateCcw, Save, Trash2, TriangleAlert } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface TyColumn {
-  id: number;
-  name: string;
-  display_name?: string;
-  col_type: string;
-  display_order: number;
-}
-
-interface TyRow {
-  _row_id: number;
-  [key: string]: unknown;
-}
+type Draft = Record<string, string>;
 
 interface TyReportRowModalProps {
   open: boolean;
@@ -39,6 +31,19 @@ interface TyReportRowModalProps {
   columns: TyColumn[];
 }
 
+const toDraft = (row: TyRow, columns: TyColumn[]): Draft => {
+  const values: Draft = {};
+  for (const col of columns) {
+    const v = row[col.name];
+    values[col.name] = v == null
+      ? ""
+      : col.col_type === "REAL" && typeof v === "number"
+        ? v.toFixed(2)
+        : String(v);
+  }
+  return values;
+};
+
 export function TyReportRowModal({
   open,
   onClose,
@@ -48,101 +53,150 @@ export function TyReportRowModal({
   row,
   columns,
 }: TyReportRowModalProps) {
-    useLanguage();
-  const [draft, setDraft] = useState<Record<string, string>>({});
+  useLanguage();
+  const [draft, setDraft] = useState<Draft>({});
+  const [initial, setInitial] = useState<Draft>({});
   const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (open && row) {
-      const values: Record<string, string> = {};
-      for (const col of columns) {
-        const v = row[col.name];
-        values[col.name] = v == null
-          ? ""
-          : col.col_type === "REAL" && typeof v === "number"
-            ? (v as number).toFixed(2)
-            : String(v);
-      }
+  const [error, setError] = useState<string | null>(null);
+  // Reset the form whenever a different row opens, without an effect.
+  const [formRow, setFormRow] = useState<TyRow | null>(null);
+  const activeRow = open ? row : null;
+  if (activeRow !== formRow) {
+    setFormRow(activeRow);
+    if (activeRow) {
+      const values = toDraft(activeRow, columns);
       setDraft(values);
+      setInitial(values);
     }
-  }, [open, row, columns]);
+    setError(null);
+  }
+
+  const changedNames = columns
+    .map((col) => col.name)
+    .filter((name) => (draft[name] ?? "") !== (initial[name] ?? ""));
+  const isDirty = changedNames.length > 0;
+
+  const reset = () => {
+    setDraft(initial);
+    setError(null);
+  };
 
   const handleSave = async () => {
-    if (!row) return;
+    if (!row || !isDirty || isSaving) return;
+    // Send only the fields the user changed, so untouched values are never re-parsed or rounded.
+    const changes = Object.fromEntries(changedNames.map((name) => [name, draft[name] ?? ""]));
     setIsSaving(true);
+    setError(null);
     try {
       await safeInvoke("update_ty_report_row", {
         reportId,
         rowId: row._row_id,
-        values: draft,
+        values: changes,
       });
       onSave();
     } catch (err) {
       console.error("Save row failed:", err);
+      setError(translate("Couldn’t save this row. Check the values and try again."));
     } finally {
       setIsSaving(false);
     }
   };
 
+  // Ctrl/⌘+Enter saves. Plain Enter is left alone so it can't save by accident from a button.
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !isSaving) {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
       handleSave();
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto" onKeyDown={handleKeyDown}>
+      <DialogContent className="sm:max-w-2xl" onKeyDown={handleKeyDown}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Pencil className="w-4 h-4" />
-            {translate("Edit row #")}{row?._row_id}
-          </DialogTitle>
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Pencil className="h-3.5 w-3.5" />
+              </span>
+              {translate("Edit row #")}{row?._row_id}
+            </DialogTitle>
+            {isDirty && (
+              <span className="font-data text-xs tabular-nums text-primary" aria-live="polite">
+                {translate("{0} unsaved", { 0: changedNames.length })}
+              </span>
+            )}
+          </div>
+          <DialogDescription>
+            {translate("Change any value, then save. Press Ctrl/⌘ + Enter to save quickly.")}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 py-4">
-          {columns.map((col) => (
-            <div key={col.name} className="space-y-1.5">
-              <Label htmlFor={`ty-edit-${col.name}`} className="text-xs">
-                {col.display_name || col.name}
-              </Label>
-              <Input
-                id={`ty-edit-${col.name}`}
-                value={draft[col.name] ?? ""}
-                onChange={(e) =>
-                  setDraft((prev) => ({
-                    ...prev,
-                    [col.name]: e.target.value,
-                  }))
-                }
-                disabled={isSaving}
-                className="h-8 text-xs"
-              />
-            </div>
-          ))}
+        {error && (
+          <div role="alert" className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <TriangleAlert className="mt-px h-3.5 w-3.5 shrink-0" />
+            {error}
+          </div>
+        )}
+
+        <div className="grid max-h-[60vh] grid-cols-1 gap-x-4 gap-y-3 overflow-y-auto py-1 sm:grid-cols-2">
+          {columns.map((col) => {
+            const id = `ty-edit-${col.name}`;
+            const changed = changedNames.includes(col.name);
+            const numeric = isNumericType(col.col_type);
+            return (
+              <div key={col.name} className="min-w-0 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor={id} className="truncate text-xs text-muted-foreground">
+                    {col.display_name || col.name}
+                  </Label>
+                  {changed && (
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-label={translate("Changed")} role="img" />
+                  )}
+                </div>
+                <Input
+                  id={id}
+                  value={draft[col.name] ?? ""}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, [col.name]: e.target.value }))}
+                  disabled={isSaving}
+                  inputMode={numeric ? "decimal" : undefined}
+                  className={cn(
+                    "h-9 text-sm",
+                    numeric && "text-right font-data tabular-nums",
+                    changed && "border-primary/40 bg-accent/40"
+                  )}
+                />
+              </div>
+            );
+          })}
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="items-center gap-2 sm:justify-between">
           <Button
             type="button"
-            variant="destructive"
+            variant="ghost"
             onClick={onDelete}
             disabled={isSaving}
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
           >
-            <Trash2 className="w-4 h-4 mr-1" />
-            {translate("Delete")}</Button>
-          <div className="flex-1" />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            disabled={isSaving}
-          >
-            <X className="w-4 h-4 mr-1" />
-            {translate("Cancel")}</Button>
-          <Button type="button" onClick={handleSave} disabled={isSaving}>
-            {isSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
-            {translate("Save")}</Button>
+            <Trash2 className="h-4 w-4" />
+            {translate("Delete")}
+          </Button>
+          <div className="flex items-center gap-2">
+            {isDirty && (
+              <Button type="button" variant="ghost" onClick={reset} disabled={isSaving}>
+                <RotateCcw className="h-4 w-4" />
+                {translate("Reset")}
+              </Button>
+            )}
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>
+              {translate("Cancel")}
+            </Button>
+            <Button type="button" onClick={handleSave} disabled={!isDirty || isSaving}>
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {translate("Save")}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

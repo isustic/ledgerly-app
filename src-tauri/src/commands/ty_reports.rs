@@ -380,11 +380,15 @@ pub async fn get_ty_report_rows(
     page: i64,
     page_size: i64,
     search: Option<String>,
+    sort_by: Option<String>,
+    sort_desc: Option<bool>,
     app: AppHandle,
 ) -> Result<PagedRows, String> {
-    tauri::async_runtime::spawn_blocking(move || get_ty_report_rows_sync(report_id, page, page_size, search, app.state::<DbState>()))
-        .await
-        .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || {
+        get_ty_report_rows_sync(report_id, page, page_size, search, sort_by, sort_desc, app.state::<DbState>())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 fn get_ty_report_rows_sync(
@@ -392,6 +396,8 @@ fn get_ty_report_rows_sync(
     page: i64,
     page_size: i64,
     search: Option<String>,
+    sort_by: Option<String>,
+    sort_desc: Option<bool>,
     db: State<'_, DbState>,
 ) -> Result<PagedRows, String> {
     let conn = db.0.lock().map_err(|_| "DB lock error")?;
@@ -405,6 +411,14 @@ fn get_ty_report_rows_sync(
         .filter(|(_, col_type)| col_type == "TEXT")
         .map(|(name, _)| name.clone())
         .collect();
+
+    // Sort across the whole report, not just the visible page. The column must be one of the
+    // report's own columns, so the name never comes from raw user input. NULLs always sort last.
+    let direction = if sort_desc.unwrap_or(false) { "DESC" } else { "ASC" };
+    let order_clause = match sort_by.as_deref().filter(|s| columns.iter().any(|(name, _)| name == s)) {
+        Some(col) => format!("ORDER BY \"{col}\" IS NULL, \"{col}\" {direction}, _row_id"),
+        None => "ORDER BY _row_id".to_string(),
+    };
 
     let query = search.unwrap_or_default();
     let use_search = !query.trim().is_empty() && !text_columns.is_empty();
@@ -424,7 +438,7 @@ fn get_ty_report_rows_sync(
             .map_err(|e| e.to_string())?;
 
         let sql = format!(
-            "SELECT * FROM \"{safe_table}\" WHERE {where_clause} LIMIT ?2 OFFSET ?3"
+            "SELECT * FROM \"{safe_table}\" WHERE {where_clause} {order_clause} LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
         let col_count = stmt.column_count();
@@ -444,7 +458,7 @@ fn get_ty_report_rows_sync(
             .query_row(&format!("SELECT COUNT(*) FROM \"{safe_table}\""), [], |r| r.get(0))
             .map_err(|e| e.to_string())?;
 
-        let sql = format!("SELECT * FROM \"{safe_table}\" LIMIT ?1 OFFSET ?2");
+        let sql = format!("SELECT * FROM \"{safe_table}\" {order_clause} LIMIT ?1 OFFSET ?2");
         let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
         let col_count = stmt.column_count();
         let col_names: Vec<String> = stmt.column_names().iter().map(|s| s.to_string()).collect();
