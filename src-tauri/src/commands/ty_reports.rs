@@ -1,3 +1,4 @@
+use crate::i18n::translate;
 use crate::db::{
     schema::{create_dataset_table, infer_type, sanitize_col_name, ColDef},
     DbState,
@@ -573,7 +574,7 @@ pub fn delete_ty_report_row(report_id: i64, row_id: i64, db: State<'_, DbState>)
 }
 
 #[tauri::command]
-pub async fn export_ty_report(report_id: i64, app: AppHandle, db: State<'_, DbState>) -> Result<String, String> {
+pub async fn export_ty_report(language: Option<String>, report_id: i64, app: AppHandle, db: State<'_, DbState>) -> Result<String, String> {
     let (report_name, columns, rows) = {
         let conn = db.0.lock().map_err(|_| "DB lock error")?;
 
@@ -644,7 +645,7 @@ pub async fn export_ty_report(report_id: i64, app: AppHandle, db: State<'_, DbSt
     let path = app
         .dialog()
         .file()
-        .add_filter("Excel Spreadsheet", &["xlsx"])
+        .add_filter(translate("Excel Spreadsheet", language.as_deref()), &["xlsx"])
         .set_file_name(&default_filename)
         .blocking_save_file()
         .ok_or("Export cancelled")?;

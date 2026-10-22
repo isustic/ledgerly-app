@@ -1,5 +1,7 @@
 "use client";
 
+import { translate } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState } from "react";
 import { safeInvoke } from "@/lib/tauri";
 import {
@@ -27,6 +29,7 @@ export function TyDeleteRowDialog({
   reportId,
   rowId,
 }: TyDeleteRowDialogProps) {
+    useLanguage();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -46,14 +49,12 @@ export function TyDeleteRowDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <TriangleAlert className="w-5 h-5 text-destructive" />
-            Delete row
-          </DialogTitle>
+            {translate("Delete row")}</DialogTitle>
         </DialogHeader>
 
         <div className="py-4">
           <p className="text-sm text-muted-foreground">
-            Are you sure you want to delete row <strong>#{rowId}</strong>? This action cannot be undone.
-          </p>
+            {translate("Are you sure you want to delete row")}{" "}<strong>#{rowId}</strong>{translate("? This action cannot be undone.")}</p>
         </div>
 
         <DialogFooter className="gap-2">
@@ -64,8 +65,7 @@ export function TyDeleteRowDialog({
             disabled={isDeleting}
           >
             <X className="w-4 h-4 mr-1" />
-            Cancel
-          </Button>
+            {translate("Cancel")}</Button>
           <Button
             type="button"
             variant="destructive"
@@ -73,8 +73,7 @@ export function TyDeleteRowDialog({
             disabled={isDeleting}
           >
             {isDeleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
-            Delete
-          </Button>
+            {translate("Delete")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

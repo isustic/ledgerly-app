@@ -1,5 +1,6 @@
 mod commands;
 mod db;
+mod i18n;
 
 use commands::subgroups::seed_subgroups;
 use db::{init_db, DbState};

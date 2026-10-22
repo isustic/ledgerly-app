@@ -1,9 +1,11 @@
 "use client";
 
+import { translate, translateMessage } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
-import { Database, Plus, Trash2, Play, Save, LoaderIcon, AlertCircleIcon } from "lucide-react";
+import { Database, Plus, Trash2, Play, Save, LoaderIcon, AlertCircleIcon, Check } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface BlendBuilderProps {
@@ -12,6 +14,7 @@ interface BlendBuilderProps {
 }
 
 export function BlendBuilder({ datasets, onError }: BlendBuilderProps) {
+    useLanguage();
     const [selectedDatasets, setSelectedDatasets] = useState<number[]>([]);
     const [joinType, setJoinType] = useState<"inner" | "left" | "right" | "full">("inner");
     const [matches, setMatches] = useState<Array<{ left: string; right: string }>>([]);
@@ -72,48 +75,67 @@ export function BlendBuilder({ datasets, onError }: BlendBuilderProps) {
 
     const selectedDatasetObjs = datasets.filter((d) => selectedDatasets.includes(d.id));
 
+    const cardClass = "rounded-xl border border-border/60 bg-card p-4 shadow-sm";
+    const sectionLabel = "mb-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
+    const joinHints: Record<typeof joinType, string> = {
+        inner: "Only keep rows that match in all datasets",
+        left: "Keep all rows from the first dataset",
+        right: "Keep all rows from the last dataset",
+        full: "Keep all rows from all datasets",
+    };
+
     return (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[320px_1fr]">
             {/* Dataset Selection */}
             <div className="space-y-4">
-                <div className="bg-card/30 border border-border/40 rounded-xl p-3">
-                    <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
-                        Datasets ({selectedDatasets.length}/4)
+                <div className={cardClass}>
+                    <h4 className={sectionLabel}>
+                        <span>{translate("Datasets")}</span>
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] normal-case tracking-normal">
+                            {selectedDatasets.length}/4
+                        </span>
                     </h4>
-                    <div className="space-y-1">
-                        {datasets.map((ds) => (
-                            <button
-                                key={ds.id}
-                                onClick={() => handleAddDataset(ds.id)}
-                                disabled={selectedDatasets.includes(ds.id) || isLoading}
-                                className="w-full px-2 py-1.5 text-xs text-left rounded hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                            >
-                                <Database className="w-3 h-3" />
-                                {ds.name}
-                            </button>
-                        ))}
+                    <div className="space-y-1.5">
+                        {datasets.map((ds) => {
+                            const picked = selectedDatasets.includes(ds.id);
+                            return (
+                                <button
+                                    key={ds.id}
+                                    onClick={() => handleAddDataset(ds.id)}
+                                    disabled={picked || isLoading}
+                                    className="flex w-full items-center gap-2.5 rounded-lg border border-border/60 px-3 py-2 text-left text-sm transition-colors hover:border-primary/40 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                        <Database className="h-3.5 w-3.5" />
+                                    </span>
+                                    <span className="min-w-0 flex-1 truncate font-medium">{ds.name}</span>
+                                    {picked && <Check className="h-3.5 w-3.5 text-primary" />}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
-                {/* Selected Datasets */}
                 {selectedDatasetObjs.length > 0 && (
-                    <div className="bg-card/30 border border-border/40 rounded-xl p-3">
-                        <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
-                            Selected
-                        </h4>
-                        <div className="space-y-1">
-                            {selectedDatasetObjs.map((ds) => (
+                    <div className={cardClass}>
+                        <h4 className={sectionLabel}>{translate("Selected")}</h4>
+                        <div className="space-y-1.5">
+                            {selectedDatasetObjs.map((ds, i) => (
                                 <div
                                     key={ds.id}
-                                    className="flex items-center justify-between px-2 py-1.5 bg-primary/10 rounded text-xs"
+                                    className="flex items-center gap-2.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm"
                                 >
-                                    <span className="font-medium">{ds.name}</span>
+                                    <span className="font-data flex h-5 w-5 shrink-0 items-center justify-center rounded bg-primary text-[10px] font-bold text-primary-foreground">
+                                        {i + 1}
+                                    </span>
+                                    <span className="min-w-0 flex-1 truncate font-medium">{ds.name}</span>
                                     <button
                                         onClick={() => handleRemoveDataset(ds.id)}
                                         disabled={isLoading}
-                                        className="text-muted-foreground hover:text-destructive disabled:opacity-50"
+                                        aria-label={translate("Remove")}
+                                        className="rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
                                     >
-                                        <Trash2 size={12} />
+                                        <Trash2 className="h-3.5 w-3.5" />
                                     </button>
                                 </div>
                             ))}
@@ -122,45 +144,35 @@ export function BlendBuilder({ datasets, onError }: BlendBuilderProps) {
                 )}
             </div>
 
-            {/* Join Configuration */}
-            <div className="col-span-2 space-y-4">
-                {/* Join Type */}
-                <div className="bg-card/30 border border-border/40 rounded-xl p-3">
-                    <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
-                        Join Type
-                    </h4>
-                    <div className="flex gap-2">
+            {/* Join Configuration + Results */}
+            <div className="min-w-0 space-y-5">
+                <div className={cardClass}>
+                    <h4 className={sectionLabel}>{translate("Join Type")}</h4>
+                    <div className="grid grid-cols-2 gap-1.5 rounded-lg bg-muted/60 p-1 sm:grid-cols-4">
                         {(["inner", "left", "right", "full"] as const).map((type) => (
                             <button
                                 key={type}
                                 onClick={() => setJoinType(type)}
                                 disabled={isLoading}
-                                className={`px-3 py-1.5 text-xs rounded capitalize transition-colors disabled:opacity-50 ${
+                                className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors disabled:opacity-50 ${
                                     joinType === type
-                                        ? "bg-primary text-primary-foreground"
-                                        : "bg-muted/50 hover:bg-muted"
+                                        ? "bg-card text-foreground shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground"
                                 }`}
                             >
-                                {type} join
+                                {translate(type)} {translate("join")}
                             </button>
                         ))}
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-2">
-                        {joinType === "inner" && "Only keep rows that match in all datasets"}
-                        {joinType === "left" && "Keep all rows from the first dataset"}
-                        {joinType === "right" && "Keep all rows from the last dataset"}
-                        {joinType === "full" && "Keep all rows from all datasets"}
-                    </p>
+                    <p className="mt-3 text-xs text-muted-foreground">{translate(joinHints[joinType])}</p>
                 </div>
 
-                {/* Match Columns */}
-                <div className="bg-card/30 border border-border/40 rounded-xl p-3">
-                    <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                            Match On
-                        </h4>
-                        <Button size="icon-xs" variant="ghost" onClick={handleAddMatch} disabled={isLoading}>
-                            <Plus size={12} />
+                <div className={cardClass}>
+                    <div className="mb-3 flex items-center justify-between">
+                        <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{translate("Match On")}</h4>
+                        <Button size="sm" variant="outline" onClick={handleAddMatch} disabled={isLoading} className="h-7 gap-1 px-2 text-xs">
+                            <Plus className="h-3.5 w-3.5" />
+                            {translate("Add match")}
                         </Button>
                     </div>
                     <div className="space-y-2">
@@ -168,7 +180,7 @@ export function BlendBuilder({ datasets, onError }: BlendBuilderProps) {
                             <div key={i} className="flex items-center gap-2">
                                 <input
                                     type="text"
-                                    placeholder="Column from first dataset"
+                                    placeholder={translate("Column from first dataset")}
                                     value={match.left}
                                     onChange={(e) => {
                                         const newMatches = [...matches];
@@ -176,12 +188,12 @@ export function BlendBuilder({ datasets, onError }: BlendBuilderProps) {
                                         setMatches(newMatches);
                                     }}
                                     disabled={isLoading}
-                                    className="flex-1 px-2 py-1 text-xs border border-border/40 rounded disabled:opacity-50"
+                                    className="h-9 min-w-0 flex-1 rounded-md border border-border/60 bg-background px-3 text-sm outline-none transition-colors focus:border-primary disabled:opacity-50"
                                 />
-                                <span className="text-muted-foreground">=</span>
+                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">=</span>
                                 <input
                                     type="text"
-                                    placeholder="Column from second dataset"
+                                    placeholder={translate("Column from second dataset")}
                                     value={match.right}
                                     onChange={(e) => {
                                         const newMatches = [...matches];
@@ -189,92 +201,91 @@ export function BlendBuilder({ datasets, onError }: BlendBuilderProps) {
                                         setMatches(newMatches);
                                     }}
                                     disabled={isLoading}
-                                    className="flex-1 px-2 py-1 text-xs border border-border/40 rounded disabled:opacity-50"
+                                    className="h-9 min-w-0 flex-1 rounded-md border border-border/60 bg-background px-3 text-sm outline-none transition-colors focus:border-primary disabled:opacity-50"
                                 />
                                 <button
                                     onClick={() => setMatches(matches.filter((_, j) => j !== i))}
                                     disabled={isLoading}
-                                    className="text-muted-foreground hover:text-destructive disabled:opacity-50"
+                                    aria-label={translate("Remove")}
+                                    className="rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
                                 >
-                                    <Trash2 size={12} />
+                                    <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                             </div>
                         ))}
                         {matches.length === 0 && (
-                            <p className="text-xs text-muted-foreground text-center py-2">
-                                No matches defined. Add a match to join datasets.
-                            </p>
+                            <div className="rounded-lg border-2 border-dashed border-border/70 py-5 text-center text-xs text-muted-foreground">
+                                {translate("No matches defined. Add a match to join datasets.")}
+                            </div>
                         )}
                     </div>
                 </div>
 
-                {/* Error Display */}
                 {error && (
                     <Alert variant="destructive">
                         <AlertCircleIcon className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
+                        <AlertDescription>{translateMessage(error)}</AlertDescription>
                     </Alert>
                 )}
 
-                {/* Actions */}
                 <div className="flex gap-2">
-                    <Button onClick={handleRun} size="sm" disabled={selectedDatasets.length < 2 || isLoading}>
+                    <Button onClick={handleRun} disabled={selectedDatasets.length < 2 || isLoading} className="h-9">
                         {isLoading ? (
-                            <LoaderIcon className="w-4 h-4 mr-1 animate-spin" />
+                            <LoaderIcon className="mr-1.5 h-4 w-4 animate-spin" />
                         ) : (
-                            <Play className="w-4 h-4 mr-1" />
+                            <Play className="mr-1.5 h-4 w-4" />
                         )}
-                        {isLoading ? "Blending..." : "Run Blend"}
+                        {isLoading ? translate("Blending...") : translate("Run Blend")}
                     </Button>
-                    <Button size="sm" variant="outline" disabled={isLoading}>
-                        <Save className="w-4 h-4 mr-1" />
-                        Save Blend
+                    <Button variant="outline" disabled={isLoading} className="h-9">
+                        <Save className="mr-1.5 h-4 w-4" />
+                        {translate("Save Blend")}
                     </Button>
                 </div>
 
-                {/* Loading State */}
                 {isLoading && (
-                    <div className="flex items-center justify-center py-8">
+                    <div className="flex items-center justify-center py-12">
                         <div className="flex flex-col items-center gap-3">
                             <LoaderIcon className="h-6 w-6 text-primary animate-spin" />
-                            <p className="text-sm text-muted-foreground">Blending datasets...</p>
+                            <p className="text-sm text-muted-foreground">{translate("Blending datasets...")}</p>
                         </div>
                     </div>
                 )}
 
-                {/* Results */}
                 {!isLoading && results.length > 0 && (
-                    <div className="bg-card/30 border border-border/40 rounded-xl overflow-auto">
-                        <div className="px-4 py-2 border-b border-border/40 flex justify-between items-center">
-                            <span className="text-xs font-medium">
-                                {results.length} rows blended
+                    <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+                        <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+                            <span className="text-sm font-semibold">
+                                {results.length.toLocaleString()} {translate("rows blended")}
                             </span>
                         </div>
-                        <table className="w-full text-sm">
-                            <thead className="bg-muted/30">
-                                <tr>
-                                    {resultColumns.map((col) => (
-                                        <th key={col} className="px-4 py-2 text-left">
-                                            {col}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {results.slice(0, 50).map((row, i) => (
-                                    <tr key={i} className="border-t border-border/20">
+                        <div className="max-h-[480px] overflow-auto">
+                            <table className="w-full text-sm">
+                                <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur">
+                                    <tr>
                                         {resultColumns.map((col) => (
-                                            <td key={col} className="px-4 py-2">
-                                                {String(row[col] ?? "")}
-                                            </td>
+                                            <th key={col} className="whitespace-nowrap px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                                {col}
+                                            </th>
                                         ))}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {results.slice(0, 50).map((row, i) => (
+                                        <tr key={i} className="border-t border-border/50 transition-colors hover:bg-muted/40">
+                                            {resultColumns.map((col) => (
+                                                <td key={col} className="whitespace-nowrap px-4 py-2">
+                                                    {String(row[col] ?? "")}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                         {results.length > 50 && (
-                            <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t border-border/40">
-                                Showing first 50 of {results.length} rows
+                            <div className="border-t border-border/60 px-4 py-2 text-center text-xs text-muted-foreground">
+                                {translate("Showing first 50 of")} {results.length.toLocaleString()} {translate("rows")}
                             </div>
                         )}
                     </div>

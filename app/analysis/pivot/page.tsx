@@ -1,14 +1,13 @@
 "use client";
 
+import { translate, getLocale } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { LoaderIcon, AlertCircleIcon, ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { DatasetSelector } from "@/components/analysis/DatasetSelector";
+import { Table } from "lucide-react";
+import { ReportShell, ReportEmptyState } from "@/components/analysis/ReportShell";
 import { PivotBuilder, PivotConfig } from "@/components/analysis/pivot/PivotBuilder";
 import { ResultsGrid } from "@/components/analysis/ResultsGrid";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 
 interface Column {
     name: string;
@@ -22,6 +21,7 @@ interface PivotResult {
 }
 
 export default function PivotPage() {
+    useLanguage();
     const [datasetId, setDatasetId] = useState<number | null>(null);
     const [columns, setColumns] = useState<string[]>([]);
     const [results, setResults] = useState<Record<string, unknown>[]>([]);
@@ -88,87 +88,46 @@ export default function PivotPage() {
         }
     };
 
+    const hasResults = results.length > 0;
+
     return (
-        <div className="flex flex-col h-full bg-background/50 mesh-bg">
-            {/* Compact Header */}
-            <div className="h-12 px-4 flex items-center gap-3 border-b border-border/50 bg-card shrink-0">
-                <Link href="/analysis">
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                        <ArrowLeft className="h-3.5 w-3.5" />
-                    </Button>
-                </Link>
-                <DatasetSelector value={datasetId} onChange={handleDatasetChange} />
-                {isLoadingColumns && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <LoaderIcon className="h-3 w-3 animate-spin" />
-                        <span>Loading...</span>
+        <ReportShell
+            icon={Table}
+            title={translate("Pivot Tables")}
+            description={translate("Multi-dimensional analysis with drag-and-drop")}
+            datasetId={datasetId}
+            onDatasetChange={handleDatasetChange}
+            isLoadingColumns={isLoadingColumns}
+            error={error}
+            onRetry={handleRetry}
+            sidebar={
+                <PivotBuilder
+                    columns={columns}
+                    onRun={handleRun}
+                    onSave={() => {}}
+                    isLoading={isLoading}
+                    compact
+                />
+            }
+        >
+            {isLoading ? (
+                <ReportEmptyState icon={Table} title={translate("Running pivot query...")} description="This usually takes a moment." loading />
+            ) : hasResults ? (
+                <div className="flex-1 overflow-auto p-6">
+                    <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                            {results.length.toLocaleString(getLocale())} {translate("rows")}
+                        </span>
                     </div>
-                )}
-            </div>
-
-            {/* Error Alert */}
-            {error && (
-                <div className="px-4 pt-3 shrink-0">
-                    <Alert variant="destructive" className="py-2 px-3">
-                        <AlertCircleIcon className="h-3.5 w-3.5" />
-                        <AlertDescription className="flex items-center justify-between text-xs">
-                            <span>{error}</span>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleRetry}
-                                className="ml-4 h-6 px-2 bg-background"
-                            >
-                                Try again
-                            </Button>
-                        </AlertDescription>
-                    </Alert>
-                </div>
-            )}
-
-            {/* Main Content: Side-by-Side Layout */}
-            {!datasetId ? (
-                <div className="flex items-center justify-center h-full">
-                    <p className="text-sm text-muted-foreground">Select a dataset to begin</p>
+                    <ResultsGrid data={results} columns={resultColumns} />
                 </div>
             ) : (
-                <div className="flex-1 flex min-h-0 overflow-hidden">
-                    {/* Left Side: Pivot Builder */}
-                    <div className="w-72 shrink-0 border-r border-border/50 bg-card/20 flex flex-col">
-                        <div className="p-3 space-y-3 overflow-y-auto flex-1">
-                            <PivotBuilder
-                                columns={columns}
-                                onRun={handleRun}
-                                onSave={() => {}}
-                                isLoading={isLoading}
-                                compact
-                            />
-                        </div>
-                    </div>
-
-                    {/* Right Side: Results */}
-                    <div className="flex-1 flex flex-col min-w-0">
-                        {isLoading ? (
-                            <div className="flex items-center justify-center h-full">
-                                <div className="flex flex-col items-center gap-2">
-                                    <LoaderIcon className="h-6 w-6 text-primary animate-spin" />
-                                    <p className="text-xs text-muted-foreground">Running pivot query...</p>
-                                </div>
-                            </div>
-                        ) : results.length > 0 ? (
-                            <div className="flex-1 overflow-auto p-3">
-                                <ResultsGrid data={results} columns={resultColumns} />
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center h-full">
-                                <p className="text-xs text-muted-foreground">
-                                    Configure your pivot and click Run to see results
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                <ReportEmptyState
+                    icon={Table}
+                    title="No results yet"
+                    description="Configure your pivot and click Run to see results."
+                />
             )}
-        </div>
+        </ReportShell>
     );
 }

@@ -3,6 +3,7 @@
 //! Generates quarterly reports grouped by client for a specific agent.
 
 use crate::db::DbState;
+use crate::i18n::translate;
 use chrono::{Datelike, NaiveDate, Duration};
 use rusqlite::params;
 use rust_xlsxwriter::{Format, FormatBorder, Workbook};
@@ -1617,6 +1618,7 @@ struct LoadedMember {
 /// Export all agents for a dataset into a single multi-sheet workbook.
 #[tauri::command]
 pub async fn export_all_epp_reports(
+    language: Option<String>,
     dataset_id: i64,
     year: i32,
     db: State<'_, DbState>,
@@ -1701,13 +1703,13 @@ pub async fn export_all_epp_reports(
     // --- Summary sheet ---
     let summary = workbook.add_worksheet();
     summary
-        .set_name("Summary")
+        .set_name(translate("Summary", language.as_deref()))
         .map_err(|e| format!("Failed to name summary sheet: {e}"))?;
 
     let summary_headers = ["Agent", "Total Clients", "Total Anual"];
     for (col, name) in summary_headers.iter().enumerate() {
         summary
-            .write_with_format(0, col as u16, *name, &header_fmt)
+            .write_with_format(0, col as u16, translate(name, language.as_deref()).as_str(), &header_fmt)
             .map_err(|e| format!("Summary header write error: {e}"))?;
     }
 
@@ -1773,7 +1775,7 @@ pub async fn export_all_epp_reports(
         // Write headers
         for (col, name) in agent_columns.iter().enumerate() {
             sheet
-                .write_with_format(0, col as u16, *name, &header_fmt)
+                .write_with_format(0, col as u16, translate(name, language.as_deref()).as_str(), &header_fmt)
                 .map_err(|e| format!("Header write error: {e}"))?;
         }
 
@@ -1887,7 +1889,7 @@ pub async fn export_all_epp_reports(
     let path = app
         .dialog()
         .file()
-        .add_filter("Excel Spreadsheet", &["xlsx"])
+        .add_filter(translate("Excel Spreadsheet", language.as_deref()), &["xlsx"])
         .set_file_name(&default_filename)
         .blocking_save_file()
         .ok_or("Export cancelled")?;

@@ -1,5 +1,7 @@
 "use client";
 
+import { translate, getLocale, getLanguage } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { invoke } from "@tauri-apps/api/core";
 import { Download, Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +17,7 @@ interface ResultsGridProps {
 type SortDirection = 'asc' | 'desc' | null;
 
 export function ResultsGrid({ data, columns }: ResultsGridProps) {
+    useLanguage();
     const [exporting, setExporting] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -120,6 +123,7 @@ export function ResultsGrid({ data, columns }: ResultsGridProps) {
             // Export filtered data if search is active, otherwise all data
             const dataToExport = searchQuery.trim() ? filteredData : data;
             await invoke("export_report", {
+        language: getLanguage(),
                 rows: dataToExport,
                 columns: columns,
             });
@@ -132,9 +136,9 @@ export function ResultsGrid({ data, columns }: ResultsGridProps) {
 
     if (data.length === 0) {
         return (
-            <div className="bg-card/30 border border-border/40 rounded-xl p-8 text-center">
-                <p className="text-sm text-muted-foreground">No results to display</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Run your analysis to see results</p>
+            <div className="rounded-xl border border-border/60 bg-card p-8 text-center shadow-sm">
+                <p className="text-sm text-muted-foreground">{translate("No results to display")}</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">{translate("Run your analysis to see results")}</p>
             </div>
         );
     }
@@ -147,10 +151,10 @@ export function ResultsGrid({ data, columns }: ResultsGridProps) {
                 <div className="relative flex-1 min-w-[200px] max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     <Input
-                        placeholder="Search across all columns..."
+                        placeholder={translate("Search across all columns...")}
                         value={searchQuery}
                         onChange={(e) => handleSearchChange(e.target.value)}
-                        className="pl-9 pr-9 h-9 bg-card/30 border-border/40"
+                        className="h-9 bg-card pl-9 pr-9"
                     />
                     {searchQuery && (
                         <button
@@ -166,12 +170,10 @@ export function ResultsGrid({ data, columns }: ResultsGridProps) {
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     {searchQuery.trim() ? (
                         <span>
-                            <span className="font-medium text-foreground">{filteredData.length.toLocaleString()}</span> of {data.length.toLocaleString()} rows match
-                        </span>
+                            <span className="font-medium text-foreground">{filteredData.length.toLocaleString(getLocale())}</span> {" "}{translate("of")}{" "}{data.length.toLocaleString(getLocale())} {" "}{translate("rows match")}</span>
                     ) : (
                         <span>
-                            <span className="font-medium text-foreground">{data.length.toLocaleString()}</span> rows
-                        </span>
+                            <span className="font-medium text-foreground">{data.length.toLocaleString(getLocale())}</span> {" "}{translate("rows")}</span>
                     )}
                 </div>
 
@@ -184,19 +186,18 @@ export function ResultsGrid({ data, columns }: ResultsGridProps) {
                     className="ml-auto shrink-0"
                 >
                     <Download className="w-4 h-4 mr-1" />
-                    Export
-                </Button>
+                    {translate("Export")}</Button>
             </div>
 
             {/* Results Table */}
             {sortedPageData.length === 0 ? (
-                <div className="bg-card/30 border border-border/40 rounded-xl p-8 text-center">
-                    <p className="text-sm text-muted-foreground">No results match your search</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">Try a different search term</p>
+                <div className="rounded-xl border border-border/60 bg-card p-8 text-center shadow-sm">
+                    <p className="text-sm text-muted-foreground">{translate("No results match your search")}</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">{translate("Try a different search term")}</p>
                 </div>
             ) : (
                 <>
-                    <div className="bg-card/30 border border-border/40 rounded-xl overflow-auto">
+                    <div className="overflow-auto rounded-xl border border-border/60 bg-card shadow-sm">
                         <table className="w-full text-sm">
                             <thead className="bg-muted/30 sticky top-0">
                                 <tr>
@@ -242,9 +243,9 @@ export function ResultsGrid({ data, columns }: ResultsGridProps) {
                         <div className="flex items-center justify-between px-1">
                             {/* Page Info */}
                             <div className="text-xs text-muted-foreground">
-                                Page <span className="font-medium text-foreground">{currentPage}</span> of <span className="font-medium text-foreground">{totalPages}</span>
+                                {translate("Page")}{" "}<span className="font-medium text-foreground">{currentPage}</span> {" "}{translate("of")}{" "}<span className="font-medium text-foreground">{totalPages}</span>
                                 {searchQuery.trim() && (
-                                    <span className="ml-2">({filteredData.length.toLocaleString()} matches)</span>
+                                    <span className="ml-2">({filteredData.length.toLocaleString(getLocale())} {" "}{translate("matches)")}</span>
                                 )}
                             </div>
 
@@ -328,7 +329,7 @@ export function ResultsGrid({ data, columns }: ResultsGridProps) {
 
                             {/* Rows per page info */}
                             <div className="text-xs text-muted-foreground">
-                                {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredData.length)} of {filteredData.length.toLocaleString()}
+                                {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredData.length)} {" "}{translate("of")}{" "}{filteredData.length.toLocaleString(getLocale())}
                             </div>
                         </div>
                     )}

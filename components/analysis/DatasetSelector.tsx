@@ -1,5 +1,7 @@
 "use client";
 
+import { translate, getLocale } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { Database, ChevronDown } from "lucide-react";
@@ -17,6 +19,7 @@ interface DatasetSelectorProps {
 }
 
 export function DatasetSelector({ value, onChange }: DatasetSelectorProps) {
+    useLanguage();
     const [datasets, setDatasets] = useState<Dataset[]>([]);
     const [open, setOpen] = useState(false);
 
@@ -27,18 +30,22 @@ export function DatasetSelector({ value, onChange }: DatasetSelectorProps) {
     const selected = datasets.find((d) => d.id === value);
 
     return (
-        <div className="relative">
+        <div className="relative shrink-0">
             <Button
                 variant="outline"
                 onClick={() => setOpen(!open)}
-                className="w-[200px] justify-between"
+                aria-expanded={open}
+                className="h-9 w-[15rem] max-w-[45vw] justify-between gap-2 px-3"
             >
-                {selected ? (
-                    <span className="truncate">{selected.name}</span>
-                ) : (
-                    <span className="text-muted-foreground">Select dataset</span>
-                )}
-                <ChevronDown className="w-4 h-4 opacity-50" />
+                <span className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                    <Database className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    {selected ? (
+                        <span className="truncate font-medium">{selected.name}</span>
+                    ) : (
+                        <span className="truncate text-muted-foreground">{translate("Select dataset")}</span>
+                    )}
+                </span>
+                <ChevronDown className={`h-4 w-4 shrink-0 opacity-60 transition-transform ${open ? "rotate-180" : ""}`} />
             </Button>
 
             {open && (
@@ -47,25 +54,32 @@ export function DatasetSelector({ value, onChange }: DatasetSelectorProps) {
                         className="fixed inset-0 z-10"
                         onClick={() => setOpen(false)}
                     />
-                    <div className="absolute top-full left-0 mt-1 w-[280px] bg-card border border-border/40 rounded-lg shadow-lg z-20 max-h-[300px] overflow-auto">
-                        {datasets.map((dataset) => (
-                            <button
-                                key={dataset.id}
-                                onClick={() => {
-                                    onChange(dataset.id);
-                                    setOpen(false);
-                                }}
-                                className="w-full px-3 py-2 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
-                            >
-                                <Database className="w-4 h-4 text-muted-foreground" />
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{dataset.name}</p>
-                                    <p className="text-[10px] text-muted-foreground">
-                                        {dataset.row_count.toLocaleString()} rows
-                                    </p>
-                                </div>
-                            </button>
-                        ))}
+                    <div className="absolute right-0 top-full z-20 mt-1.5 max-h-80 w-72 overflow-auto rounded-xl border border-border/60 bg-card p-1.5 shadow-lg">
+                        {datasets.map((dataset) => {
+                            const isSelected = dataset.id === value;
+                            return (
+                                <button
+                                    key={dataset.id}
+                                    onClick={() => {
+                                        onChange(dataset.id);
+                                        setOpen(false);
+                                    }}
+                                    className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-muted/60 ${
+                                        isSelected ? "bg-accent" : ""
+                                    }`}
+                                >
+                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                        <Database className="h-3.5 w-3.5" />
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-sm font-medium">{dataset.name}</p>
+                                        <p className="font-data text-[11px] text-muted-foreground">
+                                            {dataset.row_count.toLocaleString(getLocale())} {translate("rows")}
+                                        </p>
+                                    </div>
+                                </button>
+                            );
+                        })}
                     </div>
                 </>
             )}

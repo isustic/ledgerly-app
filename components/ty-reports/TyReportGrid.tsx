@@ -1,5 +1,7 @@
 "use client";
 
+import { translate, getLocale } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState, useEffect, useCallback } from "react";
 import { safeInvoke } from "@/lib/tauri";
 import { Button } from "@/components/ui/button";
@@ -39,7 +41,7 @@ interface TyReportGridProps {
 const PAGE_SIZE = 100;
 
 const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("ro-RO", {
+    return new Intl.NumberFormat(getLocale(), {
         style: "currency",
         currency: "RON",
         minimumFractionDigits: 2,
@@ -48,6 +50,7 @@ const formatCurrency = (value: number) => {
 };
 
 export function TyReportGrid({ reportId, onRowCountChange, onMessage }: TyReportGridProps) {
+    useLanguage();
     const [columns, setColumns] = useState<TyColumn[]>([]);
     const [rows, setRows] = useState<TyRow[]>([]);
     const [total, setTotal] = useState(0);
@@ -193,7 +196,7 @@ export function TyReportGrid({ reportId, onRowCountChange, onMessage }: TyReport
                 <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                     <Input
-                        placeholder="Search all text columns…"
+                        placeholder={translate("Search all text columns…")}
                         value={search}
                         onChange={(e) => {
                             setSearch(e.target.value);
@@ -203,7 +206,7 @@ export function TyReportGrid({ reportId, onRowCountChange, onMessage }: TyReport
                     />
                     {search && (
                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-data">
-                            {isSearching ? "Searching…" : `${total.toLocaleString()} results`}
+                            {isSearching ? translate("Searching…") : translate("{0} results", { 0: total.toLocaleString(getLocale()) })}
                         </span>
                     )}
                 </div>
@@ -299,7 +302,7 @@ export function TyReportGrid({ reportId, onRowCountChange, onMessage }: TyReport
                     <div className="flex flex-col items-center justify-center h-64 text-center">
                         <Search className="w-10 h-10 text-muted-foreground/30 mb-3" />
                         <p className="text-sm text-muted-foreground">
-                            {search ? "No results found" : "No data available"}
+                            {search ? translate("No results found") : translate("No data available")}
                         </p>
                     </div>
                 )}
@@ -309,8 +312,8 @@ export function TyReportGrid({ reportId, onRowCountChange, onMessage }: TyReport
             <div className="h-10 px-4 flex items-center justify-between gap-4 border-t border-border/50 bg-card">
                 <span className="text-[10px] text-muted-foreground font-data">
                     {total > 0
-                        ? `${displayStart.toLocaleString()}-${displayEnd.toLocaleString()} of ${total.toLocaleString()} rows`
-                        : "No rows"}
+                        ? translate("{0}-{1} of {2} rows", { 0: displayStart.toLocaleString(getLocale()), 1: displayEnd.toLocaleString(getLocale()), 2: total.toLocaleString(getLocale()) })
+                        : translate("No rows")}
                 </span>
                 <div className="flex items-center gap-1">
                     <Button

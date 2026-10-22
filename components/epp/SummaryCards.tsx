@@ -1,86 +1,67 @@
-import { Card } from "@/components/ui/card";
-import { TrendingUp, Users, DollarSign, Calculator } from "lucide-react";
+"use client";
+
+import { translate, getLocale } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface SummaryCardsProps {
-  agentName: string;
   clientCount: number;
+  qualifiedCount: number;
   totalAnual: number;
   averagePerClient: number;
   className?: string;
 }
 
+type Tone = "sky" | "emerald" | "violet" | "amber";
+
+const TONE_DOT: Record<Tone, string> = {
+  sky: "bg-sky-500",
+  emerald: "bg-emerald-500",
+  violet: "bg-violet-500",
+  amber: "bg-amber-500",
+};
+
 export function SummaryCards({
-  agentName,
   clientCount,
+  qualifiedCount,
   totalAnual,
   averagePerClient,
   className,
 }: SummaryCardsProps) {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("ro-RO", {
+  useLanguage();
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat(getLocale(), {
       style: "currency",
       currency: "RON",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(value);
-  };
 
-  const formatNumber = (value: number) => {
-    return new Intl.NumberFormat("ro-RO", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  const formatNumber = (value: number) =>
+    new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 0 }).format(value);
 
-  const cards = [
-    {
-      label: "Agent",
-      value: agentName,
-      icon: Users,
-      color: "text-blue-500",
-      bgColor: "bg-blue-500/10",
-    },
-    {
-      label: "Clients",
-      value: formatNumber(clientCount),
-      icon: Calculator,
-      color: "text-purple-500",
-      bgColor: "bg-purple-500/10",
-    },
-    {
-      label: "Total Anual",
-      value: formatCurrency(totalAnual),
-      icon: DollarSign,
-      color: "text-emerald-500",
-      bgColor: "bg-emerald-500/10",
-    },
-    {
-      label: "Avg/Client",
-      value: formatCurrency(averagePerClient),
-      icon: TrendingUp,
-      color: "text-amber-500",
-      bgColor: "bg-amber-500/10",
-    },
+  const cards: Array<{ label: string; value: string; tone: Tone }> = [
+    { label: translate("Clients"), value: formatNumber(clientCount), tone: "sky" },
+    { label: translate("Qualified"), value: formatNumber(qualifiedCount), tone: "emerald" },
+    { label: translate("Total Anual"), value: formatCurrency(totalAnual), tone: "violet" },
+    { label: translate("Avg/Client"), value: formatCurrency(averagePerClient), tone: "amber" },
   ];
 
   return (
-    <div className={cn("grid grid-cols-4 gap-2", className)}>
+    <div className={cn("grid grid-cols-2 gap-3 xl:grid-cols-4", className)}>
       {cards.map((card) => (
-        <Card key={card.label} className="p-2">
-          <div className="flex items-center gap-2">
-            <div className={cn("p-1 rounded", card.bgColor)}>
-              <card.icon className={cn("w-3 h-3", card.color)} />
+        <Card key={card.label} className="border-border/60 bg-card">
+          <CardContent className="space-y-1 p-3 xl:p-4">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className={cn("h-2 w-2 shrink-0 rounded-full", TONE_DOT[card.tone])} aria-hidden="true" />
+              <span className="truncate">{card.label}</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[9px] uppercase tracking-wide text-muted-foreground leading-none">
-                {card.label}
-              </p>
-              <p className="text-xs font-medium truncate mt-0.5" title={card.value}>
-                {card.value}
-              </p>
-            </div>
-          </div>
+            <p className="font-data truncate text-base font-bold tabular-nums xl:text-xl" title={card.value}>
+              {card.value}
+            </p>
+          </CardContent>
         </Card>
       ))}
     </div>

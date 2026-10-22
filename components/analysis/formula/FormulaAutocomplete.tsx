@@ -1,5 +1,7 @@
 "use client";
 
+import { translate } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { AUTOCOMPLETE_FUNCTIONS } from "./constants";
 
@@ -25,6 +27,7 @@ export function FormulaAutocomplete({
     onClose,
     position
 }: FormulaAutocompleteProps) {
+    useLanguage();
     const [selectedIndex, setSelectedIndex] = useState(0);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -83,7 +86,7 @@ export function FormulaAutocomplete({
         <div
             ref={menuRef}
             role="listbox"
-            aria-label="Formula suggestions"
+            aria-label={translate("Formula suggestions")}
             className="fixed z-50 w-64 bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto"
             style={{ top: position.top + 24, left: position.left }}
         >
@@ -102,7 +105,7 @@ export function FormulaAutocomplete({
                     <span className="text-base">{item.icon}</span>
                     <span className="font-medium">{item.name}</span>
                     {item.detail && (
-                        <span className="text-xs text-muted-foreground ml-auto">{item.detail}</span>
+                        <span className="text-xs text-muted-foreground ml-auto">{translate(item.detail)}</span>
                     )}
                 </button>
             ))}

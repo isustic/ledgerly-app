@@ -1,5 +1,7 @@
 "use client";
 
+import { translate } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { motion } from "framer-motion";
 import { Upload, BarChart3, FileSpreadsheet, History, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,6 +37,7 @@ const features = [
 const steps = ["Import", "Explore", "Report"];
 
 export function WelcomeDashboard() {
+    useLanguage();
     return (
         <div className="bg-background">
             <div className="container mx-auto max-w-6xl px-4 py-12 sm:py-16">
@@ -48,19 +51,18 @@ export function WelcomeDashboard() {
                         <FileSpreadsheet className="h-8 w-8 text-primary-foreground" />
                     </div>
                     <h1 className="mb-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                        Welcome to <span className="text-primary">Ledgerly</span>
+                        {translate("Welcome to")}{" "}<span className="text-primary">Ledgerly</span>
                     </h1>
                     <p className="mx-auto max-w-xl text-base text-muted-foreground sm:text-lg">
-                        Turn your Excel exports into clear, shareable reports, all on your own machine.
-                    </p>
+                        {translate("Turn your Excel exports into clear, shareable reports, all on your own machine.")}</p>
 
                     {/* Step strip */}
                     <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
                         {steps.map((step, i) => (
-                            <span key={step} className="flex items-center gap-2">
+                            <span key={translate(step)} className="flex items-center gap-2">
                                 <span className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1">
                                     <span className="font-data text-xs text-primary">{i + 1}</span>
-                                    {step}
+                                    {translate(step)}
                                 </span>
                                 {i < steps.length - 1 && <ArrowRight className="h-3.5 w-3.5 opacity-50" />}
                             </span>
@@ -74,7 +76,7 @@ export function WelcomeDashboard() {
                     transition={{ duration: 0.45, delay: 0.1, ease: "easeOut" }}
                     className="mx-auto mb-14 max-w-2xl"
                 >
-                    <UploadCard title="Drop your first Excel file here" />
+                    <UploadCard title={translate("Drop your first Excel file here")} />
                 </motion.div>
 
                 <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -90,8 +92,8 @@ export function WelcomeDashboard() {
                                     <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${feature.tone}`}>
                                         <feature.icon className="h-5 w-5" />
                                     </div>
-                                    <h3 className="mb-1.5 font-semibold">{feature.title}</h3>
-                                    <p className="text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
+                                    <h3 className="mb-1.5 font-semibold">{translate(feature.title)}</h3>
+                                    <p className="text-sm leading-relaxed text-muted-foreground">{translate(feature.description)}</p>
                                 </CardContent>
                             </Card>
                         </motion.div>

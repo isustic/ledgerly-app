@@ -1,3 +1,4 @@
+import { translate, getLocale } from "@/lib/i18n";
 import { SimpleQuery, ColumnMeta } from "@/types/report";
 
 interface OperatorMap {
@@ -30,7 +31,7 @@ export function buildQueryPreview(
   query: SimpleQuery,
   columns: ColumnMeta[]
 ): string {
-  const parts: string[] = ["Show"];
+  const parts: string[] = [translate("Show")];
 
   // Determine what we're showing
   const hasGrouping = query.groupBy.length > 0;
@@ -43,11 +44,11 @@ export function buildQueryPreview(
     // Add calculations
     if (query.calculations.length > 0) {
       const calcText = query.calculations
-        .map(c => `${FUNCTION_WORDS[c.function] || c.function} ${c.alias}`)
+        .map(c => `${translate(FUNCTION_WORDS[c.function] || c.function)} ${c.alias}`)
         .join(", ");
       parts.push(calcText);
     } else {
-      parts.push("count");
+      parts.push(translate("count"));
     }
   } else {
     // No grouping - just display columns
@@ -59,31 +60,31 @@ export function buildQueryPreview(
 
   // Grouping
   if (hasGrouping) {
-    parts.push(`grouped by ${query.groupBy.join(", ")}`);
+    parts.push(translate("grouped by {0}", { 0: query.groupBy.join(", ") }));
   }
 
   // Filters
   if (query.filters.length > 0) {
     const filterText = query.filters
       .map(f => {
-        const op = OPERATOR_WORDS[f.operator] || f.operator;
+        const op = translate(OPERATOR_WORDS[f.operator] || f.operator);
         return `${f.column} ${op} ${f.value}`;
       })
-      .join(" and ");
-    parts.push(`where ${filterText}`);
+      .join(translate(" and "));
+    parts.push(translate("where {0}", { 0: filterText }));
   }
 
   // Sort
   if (query.sortBy.length > 0) {
     const sortText = query.sortBy
-      .map(s => `${s.column} (${s.descending ? "descending" : "ascending"})`)
-      .join(", then by ");
-    parts.push(`sorted by ${sortText}`);
+      .map(s => `${s.column} (${translate(s.descending ? "descending" : "ascending")})`)
+      .join(translate(", then by "));
+    parts.push(translate("sorted by {0}", { 0: sortText }));
   }
 
   // Limit
   if (query.limit) {
-    parts.push(`limited to ${query.limit} rows`);
+    parts.push(translate("limited to {0} rows", { 0: query.limit.toLocaleString(getLocale()) }));
   }
 
   return parts.join(", ") + ".";

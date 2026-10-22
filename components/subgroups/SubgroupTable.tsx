@@ -1,5 +1,7 @@
 "use client";
 
+import { translate } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { Subgroup } from "@/types/subgroup";
 import {
   Table,
@@ -41,6 +43,7 @@ export function SubgroupTable({
   sortDirection,
   onSortChange,
 }: SubgroupTableProps) {
+    useLanguage();
   if (loading) {
     return (
       <div className="border border-border/50 rounded-lg overflow-hidden">
@@ -48,7 +51,7 @@ export function SubgroupTable({
           <TableHeader>
             <TableRow>
               {COLUMNS.map((col) => (
-                <TableHead key={col.key}>{col.label}</TableHead>
+                <TableHead key={col.key}>{translate(col.label)}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
@@ -72,8 +75,8 @@ export function SubgroupTable({
       <div className="border border-border/50 rounded-lg p-12 text-center">
         <p className="text-muted-foreground">
           {searchQuery
-            ? `No subgroups match '${searchQuery}'`
-            : "No subgroups yet. Click 'Add' to create one."}
+            ? translate("No subgroups match '{0}'", { 0: searchQuery })
+            : translate("No subgroups yet. Click 'Add' to create one.")}
         </p>
       </div>
     );
@@ -102,7 +105,7 @@ export function SubgroupTable({
                 onClick={() => onSortChange(col.key)}
               >
                 <div className="flex items-center gap-2">
-                  <span>{col.label}</span>
+                  <span>{translate(col.label)}</span>
                   <span className="flex items-center">{getSortIcon(col.key)}</span>
                 </div>
               </TableHead>

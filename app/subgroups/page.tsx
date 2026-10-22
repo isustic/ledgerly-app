@@ -1,5 +1,7 @@
 "use client";
 
+import { translate, translateMessage } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
@@ -29,6 +31,7 @@ type SortField = "cod" | "denumire" | "grupa" | "subgrupa" | null;
 type SortDirection = "asc" | "desc" | null;
 
 export default function SubgroupsPage() {
+    useLanguage();
   const [subgroups, setSubgroups] = useState<Subgroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -251,13 +254,12 @@ export default function SubgroupsPage() {
       <div className="px-6 py-4 border-b border-border/50 bg-card/30">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-lg font-semibold">Manage subgroups</h1>
+            <h1 className="text-lg font-semibold">{translate("Manage subgroups")}</h1>
           </div>
           <div className="flex items-center gap-2">
             <Button onClick={handleAdd} size="sm">
               <Plus className="w-4 h-4 mr-1" />
-              Add subgroup
-            </Button>
+              {translate("Add subgroup")}</Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -269,11 +271,11 @@ export default function SubgroupsPage() {
               <DropdownMenuContent align="end" className="w-44">
                 <DropdownMenuItem onClick={handleImportExcel} disabled={importing}>
                   <Upload className="w-4 h-4 mr-2" />
-                  {importing ? "Importing..." : "Import from Excel"}
+                  {importing ? translate("Importing...") : translate("Import from Excel")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportExcel} disabled={exporting || subgroups.length === 0}>
                   <Download className="w-4 h-4 mr-2" />
-                  {exporting ? "Exporting..." : "Export to Excel"}
+                  {exporting ? translate("Exporting...") : translate("Export to Excel")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -286,8 +288,7 @@ export default function SubgroupsPage() {
                 className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash2 className="w-4 h-4 mr-1" />
-                Delete all
-              </Button>
+                {translate("Delete all")}</Button>
             )}
           </div>
         </div>
@@ -296,7 +297,7 @@ export default function SubgroupsPage() {
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search subgroups..."
+            placeholder={translate("Search subgroups...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -307,7 +308,7 @@ export default function SubgroupsPage() {
       {/* Error Banner */}
       {importError && (
         <div className="mx-6 mt-4 flex items-center justify-between p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive">
-          <span className="text-sm">{importError}</span>
+          <span className="text-sm">{translateMessage(importError)}</span>
           <Button
             variant="ghost"
             size="sm"
@@ -325,12 +326,11 @@ export default function SubgroupsPage() {
           <div className="flex items-center justify-center h-full">
             <div className="text-center p-8 rounded-lg border border-border/50 bg-card/50 max-w-sm">
               <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No subgroups yet</h3>
+              <h3 className="text-lg font-semibold mb-2">{translate("No subgroups yet")}</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Import your subgroups from an Excel file to get started.
-              </p>
+                {translate("Import your subgroups from an Excel file to get started.")}</p>
               <Button onClick={handleImportExcel} disabled={importing}>
-                {importing ? 'Importing...' : 'Import from Excel'}
+                {importing ? translate("Importing...") : translate("Import from Excel")}
               </Button>
             </div>
           </div>
@@ -367,19 +367,16 @@ export default function SubgroupsPage() {
       <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete all subgroups?</AlertDialogTitle>
+            <AlertDialogTitle>{translate("Delete all subgroups?")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete all {subgroups.length} subgroups from the database.
-              This action cannot be undone.
-            </AlertDialogDescription>
+              {translate("This will permanently delete all")}{" "}{subgroups.length} {" "}{translate("subgroups from the database. This action cannot be undone.")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <Button variant="outline" onClick={() => setDeleteAllDialogOpen(false)} disabled={deletingAll}>
-              Cancel
-            </Button>
+              {translate("Cancel")}</Button>
             <Button variant="destructive" onClick={handleDeleteAll} disabled={deletingAll}>
               <Trash2 className="w-4 h-4 mr-2" />
-              {deletingAll ? "Deleting..." : `Delete all ${subgroups.length}`}
+              {deletingAll ? translate("Deleting...") : translate("Delete all {0}", { 0: subgroups.length })}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

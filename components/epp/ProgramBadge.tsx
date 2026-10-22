@@ -3,42 +3,27 @@ import { cn } from "@/lib/utils";
 
 interface ProgramBadgeProps {
   program: string;
-  percent: string;
   className?: string;
 }
 
-export function ProgramBadge({ program, percent, className }: ProgramBadgeProps) {
-  // Determine badge variant based on program
-  const getVariant = () => {
-    if (program === "-" || program === "") return "outline";
-    if (program.includes("Starter")) return "secondary";
-    if (program.includes("Explorer")) return "default";
-    if (program.includes("Artist")) return "outline";
-    if (program.includes("Master")) return "default";
-    if (program.includes("Prestige")) return "default";
-    return "outline";
-  };
+const TIER_TONES: Array<{ match: string; tone: string }> = [
+  { match: "Starter", tone: "bg-muted text-muted-foreground" },
+  { match: "Explorer", tone: "bg-sky-500/10 text-sky-700 dark:text-sky-400" },
+  { match: "Artist", tone: "bg-violet-500/10 text-violet-700 dark:text-violet-400" },
+  { match: "Master", tone: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+  { match: "Prestige", tone: "bg-amber-500/10 text-amber-700 dark:text-amber-400" },
+];
 
-  const getColorClass = () => {
-    if (program === "-" || program === "") return "text-muted-foreground border-border";
-    if (program.includes("Starter")) return "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600";
-    if (program.includes("Explorer")) return "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700";
-    if (program.includes("Artist")) return "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-700";
-    if (program.includes("Master")) return "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-700";
-    if (program.includes("Prestige")) return "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700";
-    return "";
-  };
+export function ProgramBadge({ program, className }: ProgramBadgeProps) {
+  if (program === "-" || program === "") {
+    return <span className="text-xs text-muted-foreground">-</span>;
+  }
+
+  const tone = TIER_TONES.find(({ match }) => program.includes(match))?.tone ?? "bg-muted text-muted-foreground";
 
   return (
-    <Badge
-      variant={getVariant()}
-      className={cn(
-        "font-medium text-xs",
-        getColorClass(),
-        className
-      )}
-    >
-      {program !== "-" ? program : "-"}
+    <Badge variant="outline" className={cn("border-transparent font-medium whitespace-nowrap", tone, className)}>
+      {program}
     </Badge>
   );
 }

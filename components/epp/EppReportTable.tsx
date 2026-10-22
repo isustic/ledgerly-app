@@ -1,23 +1,39 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { translate, getLocale, getLanguage } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
   getExpandedRowModel,
   SortingState,
+  VisibilityState,
   ColumnDef,
   flexRender,
   Row,
 } from "@tanstack/react-table";
-import { ChevronsUpDown, ChevronUp, ChevronDown, Download, Search, X } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  ChevronsUpDown,
+  Download,
+  Inbox,
+  Loader2,
+  Rows2,
+  Rows3,
+  Search,
+  SearchX,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ProgramBadge } from "./ProgramBadge";
 import { invoke } from "@tauri-apps/api/core";
+import { QUALIFIED_MIN_TOTAL } from "@/lib/epp";
 
 export interface EppRow {
   client: string;
@@ -51,52 +67,150 @@ export interface EppRow {
 }
 
 interface EppReportTableProps {
+  /** Rows after the page's client search and qualified filter. */
   rows: EppRow[];
+  /** Every row for the agent, before filtering. Used for the footer count. */
+  totalRowCount: number;
   agentName: string;
   year: number;
+  query: string;
+  onQueryChange: (value: string) => void;
   showQualifiedOnly: boolean;
   onQualifiedFilterChange: (value: boolean) => void;
 }
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("ro-RO", {
+type GroupId = "core" | "quarterly" | "comparison" | "culoare" | "tehnic" | "bonus";
+
+const COLUMN_GROUP: Record<string, GroupId> = {
+  client: "core",
+  agent: "core",
+  total_anual: "core",
+  reducere: "core",
+  total: "core",
+  program: "core",
+  procent: "core",
+  q1_total: "quarterly",
+  q2_total: "quarterly",
+  q3_total: "quarterly",
+  q4_total: "quarterly",
+  total_2025: "comparison",
+  vs_2025_2026: "comparison",
+  bonus_crestere: "comparison",
+  culoare_decolorare_q1: "culoare",
+  culoare_decolorare_q2: "culoare",
+  culoare_decolorare_q3: "culoare",
+  culoare_decolorare_q4: "culoare",
+  haircare_tehnic_q1: "tehnic",
+  haircare_tehnic_q2: "tehnic",
+  haircare_tehnic_q3: "tehnic",
+  haircare_tehnic_q4: "tehnic",
+  suma_bonus: "bonus",
+  suma_bonus_reducere: "bonus",
+  total_bonus: "bonus",
+  suma_voucher: "bonus",
+};
+
+/** Optional column groups the user can show or hide. Core columns are always visible. */
+const TOGGLE_GROUPS: GroupId[] = ["quarterly", "comparison", "culoare", "tehnic", "bonus"];
+const DEFAULT_VISIBLE_GROUPS: GroupId[] = ["quarterly", "bonus"];
+
+const GROUP_LABEL: Record<GroupId, string> = {
+  core: "",
+  quarterly: "Quarterly totals",
+  comparison: "Year comparison",
+  culoare: "Culoare + Decolorare",
+  tehnic: "Haircare tehnic",
+  bonus: "Bonus",
+};
+
+const NUMERIC_IDS = new Set([
+  "q1_total", "q2_total", "q3_total", "q4_total", "total_anual", "reducere", "total",
+  "total_2025", "vs_2025_2026", "bonus_crestere", "culoare_decolorare_q1", "culoare_decolorare_q2",
+  "culoare_decolorare_q3", "culoare_decolorare_q4", "haircare_tehnic_q1", "haircare_tehnic_q2",
+  "haircare_tehnic_q3", "haircare_tehnic_q4", "suma_bonus", "suma_bonus_reducere", "total_bonus", "suma_voucher",
+]);
+
+const GROUPS_KEY = "epp-column-groups";
+const DENSITY_KEY = "epp-density";
+type Density = "compact" | "comfortable";
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat(getLocale(), {
     style: "currency",
     currency: "RON",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
-};
 
-export function EppReportTable({ rows, agentName, year, showQualifiedOnly, onQualifiedFilterChange }: EppReportTableProps) {
+const formatPercent = (value: number) => `${value.toFixed(0)}%`;
+
+export function EppReportTable({
+  rows,
+  totalRowCount,
+  agentName,
+  year,
+  query,
+  onQueryChange,
+  showQualifiedOnly,
+  onQualifiedFilterChange,
+}: EppReportTableProps) {
+  const language = useLanguage();
   const [sorting, setSorting] = useState<SortingState>([{ id: "client", desc: false }]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [visibleGroups, setVisibleGroups] = useState<GroupId[]>(DEFAULT_VISIBLE_GROUPS);
+  const [density, setDensity] = useState<Density>("compact");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
-  // Filter rows by search query and qualified filter
-  const filteredRows = useMemo(() => {
-    let result = rows;
-
-    // Filter by qualified status (Total >= 18000 AND has a program)
-    if (showQualifiedOnly) {
-      result = result.filter((row) =>
-        row.total >= 18000 && row.program !== "-" && row.program !== ""
-      );
+  // Restore saved view preferences.
+  useEffect(() => {
+    try {
+      const savedGroups = localStorage.getItem(GROUPS_KEY);
+      if (savedGroups) setVisibleGroups(JSON.parse(savedGroups) as GroupId[]);
+      const savedDensity = localStorage.getItem(DENSITY_KEY);
+      if (savedDensity === "compact" || savedDensity === "comfortable") setDensity(savedDensity);
+    } catch {
+      // Storage unavailable; keep defaults.
     }
+  }, []);
 
-    // Filter by search query (searches client name)
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter((row) =>
-        row.client.toLowerCase().includes(query)
-      );
+  const toggleGroup = (group: GroupId) => {
+    setVisibleGroups((current) => {
+      const next = current.includes(group) ? current.filter((g) => g !== group) : [...current, group];
+      try {
+        localStorage.setItem(GROUPS_KEY, JSON.stringify(next));
+      } catch {
+        // Storage unavailable; the choice still applies for this session.
+      }
+      return next;
+    });
+  };
+
+  const changeDensity = (next: Density) => {
+    setDensity(next);
+    try {
+      localStorage.setItem(DENSITY_KEY, next);
+    } catch {
+      // Storage unavailable; the choice still applies for this session.
     }
+  };
 
-    return result;
-  }, [rows, searchQuery, showQualifiedOnly]);
+  const columnVisibility: VisibilityState = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(COLUMN_GROUP).map(([id, group]) => [
+          id,
+          group === "core" || visibleGroups.includes(group),
+        ])
+      ),
+    [visibleGroups]
+  );
 
   const handleExport = async () => {
+    setExporting(true);
+    setExportError(null);
     try {
-      // Convert filtered rows to the format expected by export_report
-      const exportRows = filteredRows.map((row) => ({
+      // Export always includes every column, regardless of which groups are shown on screen.
+      const exportRows = rows.map((row) => ({
         Client: row.client,
         Agent: row.agent,
         "Total Q1": row.q1_total,
@@ -125,468 +239,412 @@ export function EppReportTable({ rows, agentName, year, showQualifiedOnly, onQua
         "Suma voucher": row.suma_voucher,
       }));
 
-      const columns = [
-        "Client",
-        "Agent",
-        "Total Q1",
-        "Total Q2",
-        "Total Q3",
-        "Total Q4",
-        "Total Anual",
-        "Total 7.5%",
-        "Total incadrare",
-        "Program incadrare",
-        "Procent incadrare",
-        "Total 2025",
-        "2025 vs 2026",
-        "Bonus crestere",
-        "Culoare + Decolorare Q1",
-        "Culoare + Decolorare Q2",
-        "Culoare + Decolorare Q3",
-        "Culoare + Decolorare Q4",
-        "Tehnic Q1",
-        "Tehnic Q2",
-        "Tehnic Q3",
-        "Tehnic Q4",
-        "Suma bonus",
-        "Suma calcul bonus - 7.5%",
-        "Total bonus",
-        "Suma voucher",
+      const columnKeys = [
+        "Client", "Agent", "Total Q1", "Total Q2", "Total Q3", "Total Q4", "Total Anual", "Total 7.5%",
+        "Total incadrare", "Program incadrare", "Procent incadrare", "Total 2025", "2025 vs 2026",
+        "Bonus crestere", "Culoare + Decolorare Q1", "Culoare + Decolorare Q2", "Culoare + Decolorare Q3",
+        "Culoare + Decolorare Q4", "Tehnic Q1", "Tehnic Q2", "Tehnic Q3", "Tehnic Q4", "Suma bonus",
+        "Suma calcul bonus - 7.5%", "Total bonus", "Suma voucher",
       ];
 
       await invoke("export_report", {
-        rows: exportRows,
-        columns,
-        templateName: `EPro Report - ${agentName} - ${year}`,
+        language: getLanguage(),
+        rows: exportRows.map((row) =>
+          Object.fromEntries(Object.entries(row).map(([key, value]) => [translate(key), value]))
+        ),
+        columns: columnKeys.map((key) => translate(key)),
+        templateName: translate("EPro Report - {0} - {1}", { 0: agentName, 1: year }),
       });
     } catch (err) {
       console.error("Export failed:", err);
+      setExportError(translate("Export failed. Please try again."));
+    } finally {
+      setExporting(false);
     }
   };
 
-  const columns = useMemo<ColumnDef<EppRow>[]>(
-    () => [
+  const columns = useMemo<ColumnDef<EppRow>[]>(() => {
+    const money = (id: keyof EppRow, header: string, className?: string): ColumnDef<EppRow> => ({
+      id,
+      accessorKey: id,
+      header,
+      cell: ({ getValue }) => (
+        <span className={cn("font-data tabular-nums", className)}>{formatCurrency(getValue() as number)}</span>
+      ),
+    });
+    const percent = (id: keyof EppRow, header: string, className?: string): ColumnDef<EppRow> => ({
+      id,
+      accessorKey: id,
+      header,
+      cell: ({ getValue }) => (
+        <span className={cn("font-data tabular-nums", className)}>{formatPercent(getValue() as number)}</span>
+      ),
+    });
+
+    return [
       {
         id: "client",
         accessorKey: "client",
-        header: "Client",
-        cell: ({ row }) => {
-          if (row.original.is_combined) {
-            return (
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    row.toggleExpanded();
-                  }}
-                  className="p-0.5 rounded hover:bg-muted/50 transition-colors"
-                >
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={cn(
-                      "transition-transform",
-                      row.getIsExpanded() && "rotate-90"
-                    )}
-                  >
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </button>
-                <span className="font-medium text-xs whitespace-nowrap">{row.original.client}</span>
-              </div>
-            );
-          }
-          return <span className="font-medium text-xs whitespace-nowrap">{row.original.client}</span>;
-        },
+        header: translate("Client", {}, language),
+        cell: ({ row }) => (
+          <div className="flex items-center gap-1.5">
+            {row.original.is_combined && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  row.toggleExpanded();
+                }}
+                aria-expanded={row.getIsExpanded()}
+                aria-label={translate("Show source clients")}
+                className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", row.getIsExpanded() && "rotate-90")} />
+              </button>
+            )}
+            <span className="whitespace-nowrap font-medium">{row.original.client}</span>
+          </div>
+        ),
       },
       {
         id: "agent",
         accessorKey: "agent",
-        header: "Agent",
+        header: translate("Agent", {}, language),
         cell: ({ getValue }) => (
-          <span className="text-xs text-muted-foreground whitespace-nowrap">{getValue() as string}</span>
+          <span className="whitespace-nowrap text-muted-foreground">{getValue() as string}</span>
         ),
       },
-      {
-        id: "q1_total",
-        accessorKey: "q1_total",
-        header: "Total Q1",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "q2_total",
-        accessorKey: "q2_total",
-        header: "Total Q2",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "q3_total",
-        accessorKey: "q3_total",
-        header: "Total Q3",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "q4_total",
-        accessorKey: "q4_total",
-        header: "Total Q4",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "total_anual",
-        accessorKey: "total_anual",
-        header: "Total Anual",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs font-bold text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "reducere",
-        accessorKey: "reducere",
-        header: "Reducere 7.5%",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs italic text-muted-foreground text-right">
-            {formatCurrency(getValue() as number)}
-          </span>
-        ),
-      },
-      {
-        id: "total",
-        accessorKey: "total",
-        header: "Total",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs font-bold text-right text-primary">
-            {formatCurrency(getValue() as number)}
-          </span>
-        ),
-      },
+      money("total_anual", translate("Total Anual", {}, language), "font-semibold"),
+      money("reducere", translate("Reducere 7.5%", {}, language), "text-muted-foreground"),
+      money("total", translate("Total", {}, language), "font-semibold text-primary"),
       {
         id: "program",
         accessorKey: "program",
-        header: "Program incadrare",
-        cell: ({ row }) => (
-          <ProgramBadge program={row.original.program} percent={row.original.procent} />
-        ),
+        header: translate("Program incadrare", {}, language),
+        cell: ({ row }) => <ProgramBadge program={row.original.program} />,
       },
       {
         id: "procent",
         accessorKey: "procent",
-        header: "Procent",
+        header: translate("Procent", {}, language),
         cell: ({ getValue }) => {
           const value = getValue() as string;
           return (
-            <span className={cn(
-              "text-xs font-medium",
-              value === "-" ? "text-muted-foreground" : "text-primary"
-            )}>
+            <span className={cn("font-data tabular-nums", value === "-" ? "text-muted-foreground" : "text-primary")}>
               {value}
             </span>
           );
         },
       },
-      {
-        id: "total_2025",
-        accessorKey: "total_2025",
-        header: "Total 2025",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "vs_2025_2026",
-        accessorKey: "vs_2025_2026",
-        header: "2025 vs 2026",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs italic text-muted-foreground text-right">
-            {formatCurrency(getValue() as number)}
-          </span>
-        ),
-      },
-      {
-        id: "bonus_crestere",
-        accessorKey: "bonus_crestere",
-        header: "Bonus crestere",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs font-bold text-right text-emerald-600">{(getValue() as number).toFixed(0)}%</span>
-        ),
-      },
-      {
-        id: "culoare_decolorare_q1",
-        accessorKey: "culoare_decolorare_q1",
-        header: "Culoare + Decolorare Q1",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "culoare_decolorare_q2",
-        accessorKey: "culoare_decolorare_q2",
-        header: "Culoare + Decolorare Q2",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "culoare_decolorare_q3",
-        accessorKey: "culoare_decolorare_q3",
-        header: "Culoare + Decolorare Q3",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "culoare_decolorare_q4",
-        accessorKey: "culoare_decolorare_q4",
-        header: "Culoare + Decolorare Q4",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "haircare_tehnic_q1",
-        accessorKey: "haircare_tehnic_q1",
-        header: "Tehnic Q1",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "haircare_tehnic_q2",
-        accessorKey: "haircare_tehnic_q2",
-        header: "Tehnic Q2",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "haircare_tehnic_q3",
-        accessorKey: "haircare_tehnic_q3",
-        header: "Tehnic Q3",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "haircare_tehnic_q4",
-        accessorKey: "haircare_tehnic_q4",
-        header: "Tehnic Q4",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs text-right">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "suma_bonus",
-        accessorKey: "suma_bonus",
-        header: "Suma bonus",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs font-bold text-right text-amber-600">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "suma_bonus_reducere",
-        accessorKey: "suma_bonus_reducere",
-        header: "Suma calcul bonus - 7.5%",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs font-bold text-right text-amber-700">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-      {
-        id: "total_bonus",
-        accessorKey: "total_bonus",
-        header: "Total bonus",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs font-bold text-right text-amber-800">{(getValue() as number).toFixed(0)}%</span>
-        ),
-      },
-      {
-        id: "suma_voucher",
-        accessorKey: "suma_voucher",
-        header: "Suma voucher",
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs font-bold text-right text-amber-900">{formatCurrency(getValue() as number)}</span>
-        ),
-      },
-    ],
-    []
-  );
+      money("q1_total", translate("Total Q1", {}, language)),
+      money("q2_total", translate("Total Q2", {}, language)),
+      money("q3_total", translate("Total Q3", {}, language)),
+      money("q4_total", translate("Total Q4", {}, language)),
+      // The backend always compares against the TY 2025 totals, so these labels are fixed, not year-driven.
+      money("total_2025", translate("Total 2025", {}, language)),
+      money("vs_2025_2026", translate("2025 vs 2026", {}, language), "text-muted-foreground"),
+      percent("bonus_crestere", translate("Bonus crestere", {}, language), "font-semibold text-success"),
+      money("culoare_decolorare_q1", translate("Culoare + Decolorare Q1", {}, language)),
+      money("culoare_decolorare_q2", translate("Culoare + Decolorare Q2", {}, language)),
+      money("culoare_decolorare_q3", translate("Culoare + Decolorare Q3", {}, language)),
+      money("culoare_decolorare_q4", translate("Culoare + Decolorare Q4", {}, language)),
+      money("haircare_tehnic_q1", translate("Tehnic Q1", {}, language)),
+      money("haircare_tehnic_q2", translate("Tehnic Q2", {}, language)),
+      money("haircare_tehnic_q3", translate("Tehnic Q3", {}, language)),
+      money("haircare_tehnic_q4", translate("Tehnic Q4", {}, language)),
+      money("suma_bonus", translate("Suma bonus", {}, language), "font-semibold"),
+      money("suma_bonus_reducere", translate("Suma calcul bonus - 7.5%", {}, language), "font-semibold"),
+      percent("total_bonus", translate("Total bonus", {}, language), "font-semibold text-success"),
+      money("suma_voucher", translate("Suma voucher", {}, language), "font-semibold"),
+    ];
+  }, [language]);
 
   const table = useReactTable({
-    data: filteredRows,
+    data: rows,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: (row: Row<EppRow>) => row.original.is_combined,
-    onSortingChange: (updater) => {
-      const newSorting = typeof updater === "function" ? updater(sorting) : updater;
-      setSorting(newSorting);
-    },
-    state: {
-      sorting,
-    },
+    onSortingChange: setSorting,
+    state: { sorting, columnVisibility },
   });
 
-  // Quarter column background colors
-  const getQuarterBgColor = (columnId: string) => {
-    switch (columnId) {
-      case "q1_total":
-        return "bg-blue-500/5";
-      case "q2_total":
-        return "bg-green-500/5";
-      case "q3_total":
-        return "bg-orange-500/5";
-      case "q4_total":
-        return "bg-red-500/5";
-      case "culoare_decolorare_q1":
-        return "bg-purple-500/5";
-      case "culoare_decolorare_q2":
-        return "bg-pink-500/5";
-      case "culoare_decolorare_q3":
-        return "bg-indigo-500/5";
-      case "culoare_decolorare_q4":
-        return "bg-violet-500/5";
-      case "haircare_tehnic_q1":
-        return "bg-cyan-500/5";
-      case "haircare_tehnic_q2":
-        return "bg-teal-500/5";
-      case "haircare_tehnic_q3":
-        return "bg-emerald-500/5";
-      case "haircare_tehnic_q4":
-        return "bg-lime-500/5";
-      case "suma_bonus":
-        return "bg-amber-500/10";
-      case "suma_bonus_reducere":
-        return "bg-amber-500/15";
-      default:
-        return "";
-    }
+  const leafColumns = table.getVisibleLeafColumns();
+  const hasFilters = query.trim().length > 0 || showQualifiedOnly;
+  const cellPad = density === "compact" ? "py-1.5" : "py-2.5";
+
+  // Group header row: consecutive columns of the same group share one labelled cell.
+  // Core columns span both header rows instead.
+  const groupRuns: { group: GroupId; columns: typeof leafColumns }[] = [];
+  for (const column of leafColumns) {
+    const group = COLUMN_GROUP[column.id];
+    const last = groupRuns[groupRuns.length - 1];
+    if (last && last.group === group) last.columns.push(column);
+    else groupRuns.push({ group, columns: [column] });
+  }
+
+  const sortLabel = (sorted: false | "asc" | "desc") =>
+    sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : "none";
+
+  const renderSortButton = (column: (typeof leafColumns)[number], label: string) => {
+    const sorted = column.getIsSorted();
+    return (
+      <button
+        type="button"
+        onClick={column.getToggleSortingHandler()}
+        className={cn(
+          "group inline-flex items-center gap-1.5 rounded px-1 -mx-1 py-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          sorted && "text-foreground",
+          NUMERIC_IDS.has(column.id) && "flex-row-reverse"
+        )}
+      >
+        <span>{label}</span>
+        {sorted === "asc" ? (
+          <ChevronUp className="h-3.5 w-3.5 text-primary" />
+        ) : sorted === "desc" ? (
+          <ChevronDown className="h-3.5 w-3.5 text-primary" />
+        ) : (
+          <ChevronsUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-60" />
+        )}
+      </button>
+    );
   };
 
+  const headerLabel = (column: (typeof leafColumns)[number]) => String(column.columnDef.header ?? "");
+
+  const emptyState = (
+    <div className="flex animate-fade-in flex-col items-center justify-center gap-3 py-12 text-center">
+      {totalRowCount === 0 ? (
+        <>
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+            <Inbox className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="font-semibold">{translate("No clients for this agent")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{translate("Try a different year or agent.")}</p>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+            <SearchX className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="font-semibold">{translate("No matching clients")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{translate("Nothing matches your current filters.")}</p>
+          </div>
+          {hasFilters && (
+            <div className="flex items-center gap-2">
+              {query.trim() && (
+                <Button variant="outline" size="sm" onClick={() => onQueryChange("")}>
+                  {translate("Clear search")}
+                </Button>
+              )}
+              {showQualifiedOnly && (
+                <Button variant="outline" size="sm" onClick={() => onQualifiedFilterChange(false)}>
+                  {translate("Show all clients")}
+                </Button>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+
   return (
-    <div className="flex flex-col h-full min-h-0">
-      {/* Controls bar */}
-      <div className="h-12 px-4 flex items-center justify-between gap-4 border-b border-border/50 bg-card/20">
-        <div className="text-xs text-muted-foreground w-24">
-          {filteredRows.length} client{filteredRows.length !== 1 ? "s" : ""}
-          {searchQuery && ` (filtered)`}
-        </div>
-
-        {/* Search input - centered */}
-        <div className="flex-1 flex justify-center">
-          <div className="relative w-64">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* Toolbar */}
+      <div className="flex flex-col gap-2 border-b border-border px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[200px] max-w-md flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input
-              placeholder="Search clients..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-8 text-xs pr-8"
+              type="text"
+              aria-label={translate("Search clients")}
+              placeholder={translate("Search clients...")}
+              value={query}
+              onChange={(e) => onQueryChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  onQueryChange("");
+                  (e.target as HTMLInputElement).blur();
+                }
+              }}
+              className="h-9 pl-9 pr-16 text-sm"
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X size={14} />
-              </button>
+            <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => onQueryChange("")}
+                  aria-label={translate("Clear search")}
+                  className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                <kbd className="rounded border border-border bg-muted/50 px-1.5 py-0.5 font-data text-[10px] text-muted-foreground">/</kbd>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            aria-pressed={showQualifiedOnly}
+            onClick={() => onQualifiedFilterChange(!showQualifiedOnly)}
+            className={cn(
+              "inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors",
+              showQualifiedOnly
+                ? "border-primary/40 bg-accent text-accent-foreground"
+                : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
+          >
+            {translate("Qualified only")}
+            <span className="font-data text-xs opacity-70">≥{QUALIFIED_MIN_TOTAL.toLocaleString(getLocale())}</span>
+          </button>
+
+          <div className="ml-auto flex items-center gap-2">
+            {/* Density toggle */}
+            <div role="group" aria-label={translate("Row density")} className="flex items-center rounded-md border border-border bg-card p-0.5">
+              {([
+                { value: "compact", icon: Rows3, label: "Compact rows" },
+                { value: "comfortable", icon: Rows2, label: "Comfortable rows" },
+              ] as const).map(({ value, icon: Icon, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  title={translate(label)}
+                  aria-label={translate(label)}
+                  aria-pressed={density === value}
+                  onClick={() => changeDensity(value)}
+                  className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded transition-colors",
+                    density === value ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                </button>
+              ))}
+            </div>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExport}
+              disabled={exporting || rows.length === 0}
+              className="h-9 gap-2"
+            >
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {translate("Export Excel")}
+            </Button>
           </div>
         </div>
 
-        {/* Right side controls */}
-        <div className="flex items-center gap-3">
-          {/* Qualified filter checkbox */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border border-border/50">
-            <Checkbox
-              id="qualified-only"
-              checked={showQualifiedOnly}
-              onCheckedChange={(checked) => onQualifiedFilterChange(checked === true)}
-              className="h-4 w-4"
-            />
-            <label
-              htmlFor="qualified-only"
-              className="text-xs font-medium cursor-pointer select-none whitespace-nowrap"
-            >
-              Qualified only (≥18k)
-            </label>
+        {/* Column groups */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">{translate("Columns")}</span>
+          <div role="group" aria-label={translate("Column groups")} className="flex flex-wrap items-center gap-1.5">
+            {TOGGLE_GROUPS.map((group) => {
+              const on = visibleGroups.includes(group);
+              return (
+                <button
+                  key={group}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => toggleGroup(group)}
+                  className={cn(
+                    "h-7 rounded-full border px-2.5 text-xs font-medium transition-colors",
+                    on
+                      ? "border-primary/40 bg-accent text-accent-foreground"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {translate(GROUP_LABEL[group])}
+                </button>
+              );
+            })}
           </div>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleExport}
-            className="gap-2 h-8"
-          >
-            <Download size={14} />
-            Export Excel
-          </Button>
         </div>
       </div>
 
+      {exportError && (
+        <div role="alert" className="border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+          {exportError}
+        </div>
+      )}
+
       {/* Table */}
-      <div className="flex-1 overflow-auto">
-        <table className="w-full text-xs border-collapse">
+      <div className="relative h-[clamp(16rem,calc(100vh_-_22rem),56rem)] overflow-auto">
+        <table className="w-full border-separate border-spacing-0 text-sm">
           <thead className="sticky top-0 z-10">
-            {table.getHeaderGroups().map((hg) => (
-              <tr
-                key={hg.id}
-                className="bg-card/80 border-b border-border/50"
-              >
-                {hg.headers.map((h) => (
+            {/* Group row */}
+            <tr>
+              {groupRuns.map((run, i) =>
+                run.group === "core" ? (
+                  run.columns.map((column) => (
+                    <th
+                      key={column.id}
+                      rowSpan={2}
+                      aria-sort={sortLabel(column.getIsSorted())}
+                      className={cn(
+                        "border-b border-border bg-card px-3 py-2.5 text-left align-bottom text-xs font-medium whitespace-nowrap",
+                        column.id === "client" && "sticky left-0 z-20"
+                      )}
+                    >
+                      {column.getCanSort() ? renderSortButton(column, headerLabel(column)) : headerLabel(column)}
+                    </th>
+                  ))
+                ) : (
                   <th
-                    key={h.id}
-                    className={cn(
-                      "px-3 py-2 border-r border-border/30 font-medium text-xs whitespace-nowrap last:border-r-0",
-                      h.column.getCanSort() && "cursor-pointer hover:bg-muted/30 select-none transition-colors group",
-                      getQuarterBgColor(h.id)
-                    )}
-                    onClick={h.column.getToggleSortingHandler()}
+                    key={`${run.group}-${i}`}
+                    colSpan={run.columns.length}
+                    className="border-b border-border/60 bg-muted/40 px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap"
                   >
-                    <div className="flex items-center gap-2">
-                      <span>{flexRender(h.column.columnDef.header, h.getContext())}</span>
-                      <span className="flex items-center">
-                        {h.column.getIsSorted() === "asc" ? (
-                          <ChevronUp size={12} className="text-primary" />
-                        ) : h.column.getIsSorted() === "desc" ? (
-                          <ChevronDown size={12} className="text-primary" />
-                        ) : (
-                          <ChevronsUpDown size={12} className="text-muted-foreground/30 group-hover:text-muted-foreground/60" />
-                        )}
-                      </span>
-                    </div>
+                    {translate(GROUP_LABEL[run.group])}
                   </th>
-                ))}
-              </tr>
-            ))}
+                )
+              )}
+            </tr>
+            {/* Column row (non-core columns only) */}
+            <tr>
+              {groupRuns.flatMap((run) =>
+                run.group === "core"
+                  ? []
+                  : run.columns.map((column) => (
+                      <th
+                        key={column.id}
+                        aria-sort={sortLabel(column.getIsSorted())}
+                        className={cn(
+                          "border-b border-border bg-card px-3 py-2.5 text-xs font-medium whitespace-nowrap",
+                          NUMERIC_IDS.has(column.id) ? "text-right" : "text-left"
+                        )}
+                      >
+                        {column.getCanSort() ? renderSortButton(column, headerLabel(column)) : headerLabel(column)}
+                      </th>
+                    ))
+              )}
+            </tr>
           </thead>
+
           <tbody>
-            {table.getRowModel().rows.map((row, i) => (
-              <React.Fragment key={row.id}>
+            {table.getRowModel().rows.map((row) => (
+              <Fragment key={row.id}>
                 <tr
                   className={cn(
-                    "border-b border-border/30 transition-colors hover:bg-primary/5",
-                    row.original.is_combined && "bg-primary/[0.02]",
-                    i % 2 === 0 ? "bg-background/30" : "bg-background/50"
+                    "group/row transition-colors hover:bg-primary/[0.04]",
+                    row.original.is_combined && "bg-primary/[0.02]"
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
                       className={cn(
-                        "px-3 py-2 border-r border-border/30 last:border-r-0",
-                        getQuarterBgColor(cell.column.id)
+                        "whitespace-nowrap border-b border-border/60 px-3",
+                        cellPad,
+                        NUMERIC_IDS.has(cell.column.id) && "text-right",
+                        cell.column.id === "client" && "sticky left-0 z-[1] bg-card group-hover/row:bg-muted/40"
                       )}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -594,30 +652,33 @@ export function EppReportTable({ rows, agentName, year, showQualifiedOnly, onQua
                   ))}
                 </tr>
                 {row.getIsExpanded() && (
-                  <tr key={`${row.id}-expanded`} className="bg-muted/20 border-b border-border/30">
-                    <td colSpan={table.getVisibleLeafColumns().length} className="px-6 py-2 text-xs text-muted-foreground">
-                      <span className="font-medium">Source clients:</span>{" "}
+                  <tr className="bg-muted/30">
+                    <td
+                      colSpan={leafColumns.length}
+                      className="border-b border-border/60 px-6 py-2 text-xs text-muted-foreground"
+                    >
+                      <span className="font-medium text-foreground">{translate("Source clients:")}</span>{" "}
                       {row.original.source_clients.join(", ")}
                     </td>
                   </tr>
                 )}
-              </React.Fragment>
+              </Fragment>
             ))}
           </tbody>
         </table>
 
-        {/* Empty state */}
-        {filteredRows.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            {searchQuery ? (
-              <>
-                <p className="text-sm text-muted-foreground">No clients match &ldquo;{searchQuery}&rdquo;</p>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">No data available</p>
-            )}
-          </div>
+        {rows.length === 0 && (
+          // Outside the table so it stays as wide as the visible area, not the 26-column table.
+          <div className="sticky left-0 w-full">{emptyState}</div>
         )}
+
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between border-t border-border bg-card px-4 py-2.5 text-xs text-muted-foreground">
+        <p className="font-data tabular-nums" aria-live="polite">
+          {translate("{shown} of {total} clients", { shown: rows.length, total: totalRowCount })}
+        </p>
       </div>
     </div>
   );

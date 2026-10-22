@@ -1,5 +1,7 @@
 "use client";
 
+import { translate } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -20,6 +22,7 @@ const navItems = [
 ];
 
 export function Sidebar() {
+    useLanguage();
     const pathname = usePathname();
     const [collapsed, setCollapsed] = useState(false);
     const [appVersion, setAppVersion] = useState("");
@@ -71,8 +74,8 @@ export function Sidebar() {
                     type="button"
                     onClick={toggleCollapsed}
                     className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-                    title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    aria-label={collapsed ? translate("Expand sidebar") : translate("Collapse sidebar")}
+                    title={collapsed ? translate("Expand sidebar") : translate("Collapse sidebar")}
                 >
                     {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
                 </button>
@@ -99,7 +102,7 @@ export function Sidebar() {
                         >
                             {active && <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-primary" aria-hidden />}
                             <Icon size={18} className="shrink-0" />
-                            {!collapsed && <span className="truncate">{label}</span>}
+                            {!collapsed && <span className="truncate">{translate(label)}</span>}
                         </Link>
                     );
                 })}
@@ -111,7 +114,7 @@ export function Sidebar() {
                     <span className="font-data text-[10px] text-muted-foreground">{appVersion && `v${appVersion}`}</span>
                 ) : (
                     <div>
-                        <p className="text-[11px] font-medium text-muted-foreground">Version</p>
+                        <p className="text-[11px] font-medium text-muted-foreground">{translate("Version")}</p>
                         <p className="font-data text-xs text-foreground">{appVersion && `v${appVersion}`}</p>
                     </div>
                 )}

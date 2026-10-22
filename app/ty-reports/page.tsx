@@ -1,5 +1,7 @@
 "use client";
 
+import { translate, translateMessage, getLocale } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { safeInvoke, safeOpen, safeConfirm } from "@/lib/tauri";
@@ -31,6 +33,7 @@ interface TyReport {
 }
 
 function TyReportsPageContent() {
+    useLanguage();
     const searchParams = useSearchParams();
     const [reports, setReports] = useState<TyReport[]>([]);
     const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -127,8 +130,8 @@ function TyReportsPageContent() {
     const handleDeleteReport = async () => {
         if (!selectedReport) return;
         const confirmed = await safeConfirm(
-            `Delete "${selectedReport.name}"? This cannot be undone.`,
-            "Delete TY Report"
+            translate("Delete \"{0}\"? This cannot be undone.", { 0: selectedReport.name }),
+            translate("Delete TY Report")
         );
         if (!confirmed) return;
         try {
@@ -166,11 +169,9 @@ function TyReportsPageContent() {
                 <div className="px-4 pt-4 pb-3 border-b border-border/50">
                     <h1 className="text-sm font-semibold flex items-center gap-2">
                         <Table2 className="w-4 h-4 text-primary" />
-                        TY Reports
-                    </h1>
+                        {translate("TY Reports")}</h1>
                     <p className="text-[10px] text-muted-foreground mb-3">
-                        Total Year Reports
-                    </p>
+                        {translate("Total Year Reports")}</p>
                     <Button
                         variant="outline"
                         size="sm"
@@ -183,8 +184,7 @@ function TyReportsPageContent() {
                         ) : (
                             <Upload className="w-3.5 h-3.5" />
                         )}
-                        Upload
-                    </Button>
+                        {translate("Upload")}</Button>
                 </div>
 
                 <div className="flex-1 overflow-auto p-2 space-y-1">
@@ -209,8 +209,7 @@ function TyReportsPageContent() {
                                     {report.name}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground font-data shrink-0">
-                                    {report.row_count.toLocaleString()} rows
-                                </span>
+                                    {report.row_count.toLocaleString(getLocale())} {" "}{translate("rows")}</span>
                             </div>
                             <div className="text-[10px] text-muted-foreground/60 truncate">
                                 {report.original_file_name}
@@ -222,11 +221,9 @@ function TyReportsPageContent() {
                         <div className="text-center py-8 px-4">
                             <FileSpreadsheet className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
                             <p className="text-xs text-muted-foreground">
-                                No TY reports yet
-                            </p>
+                                {translate("No TY reports yet")}</p>
                             <p className="text-[10px] text-muted-foreground/60">
-                                Upload an Excel file to get started
-                            </p>
+                                {translate("Upload an Excel file to get started")}</p>
                         </div>
                     )}
                 </div>
@@ -241,11 +238,9 @@ function TyReportsPageContent() {
                                 <FolderOpen className="w-7 h-7 text-primary" />
                             </div>
                             <h2 className="text-lg font-semibold mb-2">
-                                Import your first TY report
-                            </h2>
+                                {translate("Import your first TY report")}</h2>
                             <p className="text-sm text-muted-foreground mb-6">
-                                Upload Total Year Excel files to edit and export them
-                            </p>
+                                {translate("Upload Total Year Excel files to edit and export them")}</p>
                             <Button
                                 variant="outline"
                                 onClick={handleUpload}
@@ -257,8 +252,7 @@ function TyReportsPageContent() {
                                 ) : (
                                     <Upload className="w-4 h-4" />
                                 )}
-                                Choose file…
-                            </Button>
+                                {translate("Choose file…")}</Button>
                         </div>
                     </div>
                 ) : selectedReport ? (
@@ -288,8 +282,7 @@ function TyReportsPageContent() {
                                                 className="h-8"
                                             >
                                                 <Save className="w-3.5 h-3.5 mr-1" />
-                                                Save
-                                            </Button>
+                                                {translate("Save")}</Button>
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
@@ -300,15 +293,14 @@ function TyReportsPageContent() {
                                                 className="h-8"
                                             >
                                                 <X className="w-3.5 h-3.5 mr-1" />
-                                                Cancel
-                                            </Button>
+                                                {translate("Cancel")}</Button>
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2 group">
                                             <h2
                                                 onClick={startRenaming}
                                                 className="text-base font-semibold truncate cursor-pointer hover:text-primary transition-colors"
-                                                title="Click to rename"
+                                                title={translate("Click to rename")}
                                             >
                                                 {selectedReport.name}
                                             </h2>
@@ -323,8 +315,7 @@ function TyReportsPageContent() {
                                         </div>
                                     )}
                                     <span className="text-[11px] text-muted-foreground font-data whitespace-nowrap">
-                                        {selectedReport.row_count.toLocaleString()} rows
-                                    </span>
+                                        {selectedReport.row_count.toLocaleString(getLocale())} {" "}{translate("rows")}</span>
                                 </div>
 
                                 <div className="flex items-center gap-2 shrink-0">
@@ -340,8 +331,7 @@ function TyReportsPageContent() {
                                         ) : (
                                             <FileSpreadsheet className="w-3.5 h-3.5" />
                                         )}
-                                        Export
-                                    </Button>
+                                        {translate("Export")}</Button>
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -349,14 +339,13 @@ function TyReportsPageContent() {
                                         className="h-8 gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10"
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
-                                        Delete Report
-                                    </Button>
+                                        {translate("Delete Report")}</Button>
                                 </div>
                             </div>
 
                             {message && (
                                 <div className="mt-2 text-xs text-muted-foreground animate-fade-in">
-                                    {message}
+                                    {translateMessage(message)}
                                 </div>
                             )}
                         </div>
@@ -378,6 +367,7 @@ function TyReportsPageContent() {
 }
 
 export default function TyReportsPage() {
+    useLanguage();
     return (
         <Suspense
             fallback={

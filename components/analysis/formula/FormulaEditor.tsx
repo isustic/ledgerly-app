@@ -1,5 +1,7 @@
 "use client";
 
+import { translate, translateMessage, getLocale } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,7 @@ type FormulaPreview =
     | null;
 
 export function FormulaEditor({ datasetId, columns }: FormulaEditorProps) {
+    useLanguage();
     const [name, setName] = useState("");
     const [formula, setFormula] = useState("");
     const [mode, setMode] = useState<"code" | "builder">("code");
@@ -265,68 +268,78 @@ export function FormulaEditor({ datasetId, columns }: FormulaEditorProps) {
         return () => document.removeEventListener("keydown", handleKeyDown);
     }, [formula, validation.isValid, isValidating]);
 
+    const card = "rounded-xl border border-border/60 bg-card p-4 shadow-sm";
+    const label = "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
+
     return (
-        <div className="space-y-4">
+        <div className="space-y-5">
             {/* Error Display */}
             {error && (
                 <Alert variant="destructive">
                     <AlertCircleIcon className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
+                    <AlertDescription>{translateMessage(error)}</AlertDescription>
                 </Alert>
             )}
 
             {/* Success Display */}
             {successMessage && (
-                <Alert className="border-green-500/50 text-green-700 bg-green-50 dark:bg-green-950/20">
+                <Alert className="border-primary/40 bg-accent text-primary">
                     <CheckCircle2Icon className="h-4 w-4" />
-                    <AlertDescription>{successMessage}</AlertDescription>
+                    <AlertDescription>{translateMessage(successMessage)}</AlertDescription>
                 </Alert>
             )}
 
-            <div className="grid grid-cols-3 gap-4">
-                {/* Editor */}
-                <div className="col-span-2 space-y-4">
-                    <div className="space-y-2">
-                        <Input
-                            placeholder="Formula name (e.g., Net Profit)"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            disabled={isLoading}
-                        />
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_300px]">
+                {/* Main column */}
+                <div className="min-w-0 space-y-5">
+                    {/* Editor card */}
+                    <div className={`${card} space-y-4`}>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                            <div className="min-w-0 flex-1 space-y-1.5">
+                                <label className={label}>{translate("Name")}</label>
+                                <Input
+                                    placeholder={translate("Formula name (e.g., Net Profit)")}
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    disabled={isLoading}
+                                    className="h-9"
+                                />
+                            </div>
 
-                        {/* Mode Toggle */}
-                        <div className="flex gap-1 p-1 bg-muted/30 rounded-lg">
-                            <button
-                                onClick={() => setMode("code")}
-                                className={`px-3 py-1 text-xs rounded transition-colors ${
-                                    mode === "code"
-                                        ? "bg-background shadow-sm"
-                                        : "hover:bg-background/50"
-                                }`}
-                            >
-                                ⚡ Code
-                            </button>
-                            <button
-                                onClick={() => setMode("builder")}
-                                className={`px-3 py-1 text-xs rounded transition-colors ${
-                                    mode === "builder"
-                                        ? "bg-background shadow-sm"
-                                        : "hover:bg-background/50"
-                                }`}
-                            >
-                                🧩 Builder
-                            </button>
+                            {/* Mode Toggle */}
+                            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted/60 p-1 sm:w-56">
+                                <button
+                                    onClick={() => setMode("code")}
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                                        mode === "code" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                                >
+                                    {translate("⚡ Code")}
+                                </button>
+                                <button
+                                    onClick={() => setMode("builder")}
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                                        mode === "builder" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                                >
+                                    {translate("🧩 Builder")}
+                                </button>
+                            </div>
                         </div>
 
                         {mode === "code" ? (
-                            <textarea
-                                ref={textareaRef}
-                                placeholder="Enter formula (e.g., AVG(Sales) - SUM(Expenses))"
-                                value={formula}
-                                onChange={(e) => setFormula(e.target.value)}
-                                disabled={isLoading}
-                                className="w-full h-32 px-3 py-2 border border-border/40 rounded-lg text-sm font-mono bg-background resize-none disabled:opacity-50"
-                            />
+                            <div className="space-y-2">
+                                <label className={label}>{translate("Formula")}</label>
+                                <textarea
+                                    ref={textareaRef}
+                                    placeholder={translate("Enter formula (e.g., AVG(Sales) - SUM(Expenses))")}
+                                    value={formula}
+                                    onChange={(e) => setFormula(e.target.value)}
+                                    disabled={isLoading}
+                                    spellCheck={false}
+                                    className="font-data min-h-[160px] w-full resize-y rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm leading-relaxed outline-none transition-colors focus:border-primary focus:bg-background disabled:opacity-50"
+                                />
+                            </div>
                         ) : (
                             <FormulaBuilder
                                 columns={columns}
@@ -334,94 +347,96 @@ export function FormulaEditor({ datasetId, columns }: FormulaEditorProps) {
                                 currentFormula={formula}
                             />
                         )}
-                        {/* Validation Status Indicator */}
-                        {formula.trim() && (
-                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                {isValidating ? (
+
+                        {/* Validation status + shortcuts */}
+                        <div className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                {!formula.trim() ? (
+                                    <span>{translate("Write a formula to check its syntax.")}</span>
+                                ) : isValidating ? (
                                     <>
-                                        <LoaderIcon className="h-3 w-3 animate-spin" />
-                                        <span>Checking syntax...</span>
+                                        <LoaderIcon className="h-3.5 w-3.5 animate-spin" />
+                                        <span>{translate("Checking syntax...")}</span>
                                     </>
                                 ) : validation.isValid ? (
-                                    <>
-                                        <span className="text-green-500">✓</span>
-                                        <span>Syntax OK</span>
-                                    </>
+                                    <span className="flex items-center gap-1.5 font-medium text-primary">
+                                        <CheckCircle2Icon className="h-3.5 w-3.5" />
+                                        {translate("Syntax OK")}
+                                    </span>
                                 ) : (
-                                    <>
-                                        <span className="text-yellow-500">⚠</span>
-                                        <span>{validation.error?.split(":").pop()?.trim().substring(0, 50)}...</span>
-                                    </>
+                                    <span className="flex items-center gap-1.5 font-medium text-amber-600 dark:text-amber-400">
+                                        <AlertCircleIcon className="h-3.5 w-3.5" />
+                                        <span className="truncate">{translateMessage(validation.error ?? "").substring(0, 80)}...</span>
+                                    </span>
                                 )}
                             </div>
-                        )}
-                        {/* Keyboard Shortcuts Documentation */}
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/30 px-2 py-1.5 rounded-md">
-                            <span>⌨️</span>
-                            <span>Ctrl+Space: Autocomplete • Ctrl+Enter: Test Formula</span>
+                            <p className="text-muted-foreground">
+                                {translate("Ctrl+Space: Autocomplete • Ctrl+Enter: Test Formula")}
+                            </p>
                         </div>
+
                         {mode === "code" && (
-                            <p className="text-[10px] text-muted-foreground">
-                                💡 Tip: Select text and click a function to wrap it, or click function then insert columns inside parentheses.
+                            <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                                {translate("💡 Tip: Select text and click a function to wrap it, or click function then insert columns inside parentheses.")}
                             </p>
                         )}
-                        <div className="flex gap-2">
-                            <Button onClick={handleTest} size="sm" disabled={!formula.trim() || isLoading || !validation.isValid || isValidating}>
+
+                        <div className="flex gap-2 border-t border-border/60 pt-4">
+                            <Button onClick={handleTest} disabled={!formula.trim() || isLoading || !validation.isValid || isValidating}>
                                 {isLoading ? (
-                                    <LoaderIcon className="w-4 h-4 mr-1 animate-spin" />
+                                    <LoaderIcon className="mr-1.5 h-4 w-4 animate-spin" />
                                 ) : (
-                                    <Play className="w-4 h-4 mr-1" />
+                                    <Play className="mr-1.5 h-4 w-4" />
                                 )}
-                                {isLoading ? "Testing..." : "Test"}
+                                {isLoading ? translate("Testing...") : translate("Test formula")}
                             </Button>
-                            <Button onClick={handleSave} size="sm" variant="outline" disabled={!name.trim() || !formula.trim() || isLoading}>
+                            <Button variant="outline" onClick={handleSave} disabled={!name.trim() || !formula.trim() || isLoading}>
                                 {isLoading ? (
-                                    <LoaderIcon className="w-4 h-4 mr-1 animate-spin" />
+                                    <LoaderIcon className="mr-1.5 h-4 w-4 animate-spin" />
                                 ) : (
-                                    <Save className="w-4 h-4 mr-1" />
+                                    <Save className="mr-1.5 h-4 w-4" />
                                 )}
-                                {isLoading ? "Saving..." : "Save"}
+                                {isLoading ? translate("Saving...") : translate("Save")}
                             </Button>
                         </div>
                     </div>
 
                     {/* Preview */}
                     {preview && (
-                        <div className="bg-card/30 border border-border/40 rounded-xl overflow-hidden">
+                        <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
                             {preview.type === "scalar" ? (
-                                // Scalar result display (aggregate functions)
-                                <div className="p-6">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <Calculator className="h-5 w-5 text-primary" />
-                                        <span className="text-xs font-medium text-muted-foreground">Result</span>
-                                    </div>
-                                    <div className="bg-background/50 rounded-lg p-4 border border-border/30">
-                                        <p className="text-3xl font-bold text-foreground">
-                                            {preview.value !== null ? Number(preview.value).toLocaleString(undefined, {
+                                <div className="flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="min-w-0">
+                                        <div className="mb-2 flex items-center gap-2">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                                <Calculator className="h-3.5 w-3.5" />
+                                            </span>
+                                            <span className={label}>{translate("Result")}</span>
+                                        </div>
+                                        <p className="font-data text-4xl font-bold tracking-tight">
+                                            {preview.value !== null ? Number(preview.value).toLocaleString(getLocale(), {
                                                 maximumFractionDigits: 2,
                                             }) : "NULL"}
                                         </p>
-                                        <p className="text-xs text-muted-foreground mt-2 font-mono">
-                                            {preview.formula}
-                                        </p>
                                     </div>
+                                    <code className="font-data max-w-full truncate rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground sm:max-w-xs">
+                                        {preview.formula}
+                                    </code>
                                 </div>
                             ) : (
-                                // Row-level results display
                                 <div>
-                                    <p className="px-4 py-2 text-xs font-medium text-muted-foreground border-b border-border/40">
-                                        Preview (first 10 rows)
-                                    </p>
-                                    <div className="max-h-64 overflow-auto">
+                                    <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+                                        <span className="text-sm font-semibold">{translate("Preview (first 10 rows)")}</span>
+                                        <code className="font-data max-w-xs truncate text-xs text-muted-foreground">{preview.formula}</code>
+                                    </div>
+                                    <div className="max-h-72 overflow-auto">
                                         <table className="w-full text-sm">
                                             <tbody>
                                                 {preview.values.map((val, i) => (
-                                                    <tr key={i} className="border-t border-border/20">
-                                                        <td className="px-4 py-2 font-mono text-xs text-muted-foreground w-16">
-                                                            {i + 1}
-                                                        </td>
+                                                    <tr key={i} className="border-t border-border/50 transition-colors first:border-t-0 hover:bg-muted/40">
+                                                        <td className="font-data w-14 px-4 py-2 text-xs text-muted-foreground">{i + 1}</td>
                                                         <td className="px-4 py-2">
-                                                            {val !== null ? String(val) : <span className="text-muted-foreground/50">NULL</span>}
+                                                            {val !== null ? String(val) : <span className="text-muted-foreground/60">NULL</span>}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -435,20 +450,20 @@ export function FormulaEditor({ datasetId, columns }: FormulaEditorProps) {
                 </div>
 
                 {/* Sidebar */}
-                <div className="space-y-4">
+                <aside className="min-w-0 space-y-5">
                     {/* Functions */}
                     <FunctionReference onInsert={insertFunction} />
 
                     {/* Columns */}
-                    <div className="bg-card/30 border border-border/40 rounded-xl p-3">
-                        <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Columns</h4>
-                        <div className="flex flex-wrap gap-1">
+                    <div className={card}>
+                        <h4 className={`${label} mb-3`}>{translate("Columns")}</h4>
+                        <div className="flex max-h-48 flex-wrap gap-1.5 overflow-y-auto">
                             {columns.map((col) => (
                                 <button
                                     key={col}
                                     onClick={() => insertColumn(col)}
                                     disabled={isLoading}
-                                    className="px-2 py-1 text-xs bg-muted/50 rounded hover:bg-primary/20 transition-colors disabled:opacity-50"
+                                    className="rounded-md border border-border/60 bg-muted/40 px-2 py-1 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-accent hover:text-primary disabled:opacity-50"
                                 >
                                     {col}
                                 </button>
@@ -460,10 +475,10 @@ export function FormulaEditor({ datasetId, columns }: FormulaEditorProps) {
                     <FormulaTemplates onSelect={handleTemplateSelect} />
 
                     {/* Saved Formulas */}
-                    <div className="bg-card/30 border border-border/40 rounded-xl p-3">
-                        <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Saved</h4>
-                            <Button size="icon-xs" variant="ghost" onClick={() => { setName(""); setFormula(""); }} disabled={isLoading}>
+                    <div className={card}>
+                        <div className="mb-3 flex items-center justify-between">
+                            <h4 className={label}>{translate("Saved")}</h4>
+                            <Button size="icon-xs" variant="ghost" onClick={() => { setName(""); setFormula(""); }} disabled={isLoading} aria-label={translate("New formula")}>
                                 <Plus size={12} />
                             </Button>
                         </div>
@@ -472,11 +487,11 @@ export function FormulaEditor({ datasetId, columns }: FormulaEditorProps) {
                                 <LoaderIcon className="h-4 w-4 animate-spin text-muted-foreground" />
                             </div>
                         ) : (
-                            <div className="space-y-1">
+                            <div className="space-y-1.5">
                                 {formulas.map((f) => (
                                     <div
                                         key={f.id}
-                                        className="flex items-center justify-between group px-2 py-1.5 bg-muted/30 rounded hover:bg-muted/50 transition-colors"
+                                        className="group flex items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 transition-colors hover:border-border/60 hover:bg-muted/40"
                                     >
                                         <button
                                             onClick={() => {
@@ -485,25 +500,28 @@ export function FormulaEditor({ datasetId, columns }: FormulaEditorProps) {
                                                 setFormula(f.formula_sql);
                                             }}
                                             disabled={isLoading}
-                                            className="text-xs font-medium truncate flex-1 text-left disabled:opacity-50"
+                                            className="min-w-0 flex-1 truncate text-left text-sm font-medium disabled:opacity-50"
                                         >
                                             {f.name}
                                         </button>
                                         <button
                                             onClick={() => handleDelete(f.id)}
-                                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+                                            aria-label={translate("Delete")}
+                                            className="rounded p-1 text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
                                         >
-                                            <Trash2 size={12} />
+                                            <Trash2 className="h-3.5 w-3.5" />
                                         </button>
                                     </div>
                                 ))}
                                 {formulas.length === 0 && (
-                                    <p className="text-xs text-muted-foreground text-center py-2">No saved formulas</p>
+                                    <p className="rounded-lg border-2 border-dashed border-border/70 py-4 text-center text-xs text-muted-foreground">
+                                        {translate("No saved formulas")}
+                                    </p>
                                 )}
                             </div>
                         )}
                     </div>
-                </div>
+                </aside>
             </div>
 
             {/* Autocomplete */}

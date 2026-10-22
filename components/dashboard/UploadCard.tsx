@@ -1,5 +1,7 @@
 "use client";
 
+import { translate, translateMessage, getLocale } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState } from "react";
 import { UploadCloud, FileSpreadsheet, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +20,7 @@ export function UploadCard({
     title = "Drop your Excel file here",
     subtitle = "or browse from your computer",
 }: UploadCardProps) {
+    useLanguage();
     const { pickAndUpload, ingestPath, isIngesting, progress, rowsDone, error, clearError } = useDatasetUpload();
     const [isDragging, setIsDragging] = useState(false);
     const [dropHint, setDropHint] = useState<string | null>(null);
@@ -95,21 +98,20 @@ export function UploadCard({
                     {isIngesting ? (
                         <div className="w-full max-w-md space-y-3" role="status" aria-live="polite">
                             <div className="flex items-center justify-between text-sm">
-                                <span className="font-medium">Importing your data…</span>
+                                <span className="font-medium">{translate("Importing your data…")}</span>
                                 <span className="font-data font-semibold text-primary">{progress}%</span>
                             </div>
                             <Progress value={progress} className={compact ? "h-1.5" : "h-2.5"} />
                             <p className="font-data text-xs text-muted-foreground">
-                                {rowsDone.toLocaleString()} rows processed
-                            </p>
+                                {rowsDone.toLocaleString(getLocale())} {" "}{translate("rows processed")}</p>
                         </div>
                     ) : (
                         <>
                             <div className="space-y-1">
                                 <p className={cn("font-semibold", compact ? "text-sm" : "text-xl")}>
-                                    {isDragging ? "Release to import" : title}
+                                    {isDragging ? translate("Release to import") : title}
                                 </p>
-                                <p className="text-sm text-muted-foreground">{subtitle}</p>
+                                <p className="text-sm text-muted-foreground">{translate(subtitle)}</p>
                             </div>
 
                             <Button
@@ -122,13 +124,12 @@ export function UploadCard({
                                 className="gap-2 shadow-md shadow-primary/20"
                             >
                                 <FileSpreadsheet className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
-                                Browse files
-                            </Button>
+                                {translate("Browse files")}</Button>
 
                             {!compact && (
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                                    <span>Supports</span>
+                                    <span>{translate("Supports")}</span>
                                     <span className="font-data rounded-md border border-border bg-card px-1.5 py-0.5">.xlsx</span>
                                 </div>
                             )}
@@ -143,7 +144,7 @@ export function UploadCard({
                     className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
                 >
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>{message}</span>
+                    <span>{translateMessage(message)}</span>
                 </div>
             )}
         </div>

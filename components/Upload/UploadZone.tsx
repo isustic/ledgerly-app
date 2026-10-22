@@ -1,5 +1,7 @@
 "use client";
 
+import { translate, translateMessage, getLocale } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState, useRef, useCallback } from "react";
 import { Upload, FolderOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,7 @@ interface UploadZoneProps {
 }
 
 export function UploadZone({ onSuccess, compact = false }: UploadZoneProps) {
+    useLanguage();
     const [isDragging, setIsDragging] = useState(false);
     const [isIngesting, setIsIngesting] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -103,8 +106,7 @@ export function UploadZone({ onSuccess, compact = false }: UploadZoneProps) {
                     className="h-8 gap-1.5 border-border/50 hover:border-primary/50"
                 >
                     <FolderOpen size={13} />
-                    Import…
-                </Button>
+                    {translate("Import…")}</Button>
                 {isIngesting && (
                     <span className="text-xs text-muted-foreground flex items-center gap-1.5">
                         <Sparkles size={12} className="animate-pulse" />
@@ -131,7 +133,7 @@ export function UploadZone({ onSuccess, compact = false }: UploadZoneProps) {
                 )}
             >
                 {/* Background gradient mesh */}
-                <div className="absolute inset-0 opacity-30 mesh-bg pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
 
                 <div className="relative flex flex-col items-center justify-center gap-4">
                     {/* Animated icon */}
@@ -148,8 +150,8 @@ export function UploadZone({ onSuccess, compact = false }: UploadZoneProps) {
                     </div>
 
                     <div className="text-center space-y-1">
-                        <p className="text-sm font-medium">Drag your excel file here</p>
-                        <p className="text-xs text-muted-foreground">or browse to select an .xlsx file</p>
+                        <p className="text-sm font-medium">{translate("Drag your excel file here")}</p>
+                        <p className="text-xs text-muted-foreground">{translate("or browse to select an .xlsx file")}</p>
                     </div>
 
                     <Button
@@ -159,8 +161,7 @@ export function UploadZone({ onSuccess, compact = false }: UploadZoneProps) {
                         className="gap-2 border-border/50 hover:border-primary/50 hover:bg-primary/5"
                     >
                         <FolderOpen size={14} />
-                        Choose file…
-                    </Button>
+                        {translate("Choose file…")}</Button>
 
                     {/* File format hint */}
                     <div className="flex gap-1.5 text-[10px] text-muted-foreground/60">
@@ -176,14 +177,12 @@ export function UploadZone({ onSuccess, compact = false }: UploadZoneProps) {
                     <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground flex items-center gap-1.5">
                             <Sparkles size={12} className="animate-pulse text-primary" />
-                            Importing data…
-                        </span>
+                            {translate("Importing data…")}</span>
                         <span className="font-data text-primary">{progress}%</span>
                     </div>
                     <Progress value={progress} className="h-1.5" />
                     <p className="text-[10px] text-muted-foreground text-center font-data">
-                        {rowsDone.toLocaleString()} rows processed
-                    </p>
+                        {rowsDone.toLocaleString(getLocale())} {" "}{translate("rows processed")}</p>
                 </div>
             )}
 
@@ -191,7 +190,7 @@ export function UploadZone({ onSuccess, compact = false }: UploadZoneProps) {
             {error && (
                 <p className="text-sm text-destructive rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 flex items-start gap-2">
                     <span className="shrink-0">⚠</span>
-                    <span>{error}</span>
+                    <span>{translateMessage(error)}</span>
                 </p>
             )}
         </div>

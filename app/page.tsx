@@ -1,5 +1,7 @@
 "use client";
 
+import { translate } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useEffect, useState } from "react";
 import { WelcomeDashboard } from "@/components/dashboard/WelcomeDashboard";
 import { ReturningDashboard } from "@/components/dashboard/ReturningDashboard";
@@ -15,6 +17,7 @@ interface Dataset {
 }
 
 export default function HomePage() {
+    useLanguage();
     const [datasets, setDatasets] = useState<Dataset[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -36,7 +39,7 @@ export default function HomePage() {
 
     if (loading) {
         return (
-            <div className="mx-auto max-w-5xl space-y-4 p-8" aria-busy="true" aria-label="Loading">
+            <div className="mx-auto max-w-5xl space-y-4 p-8" aria-busy="true" aria-label={translate("Loading")}>
                 <div className="h-8 w-48 rounded-md bg-muted" />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {Array.from({ length: 4 }, (_, i) => (

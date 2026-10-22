@@ -1,5 +1,7 @@
 "use client";
 
+import { translate, translateMessage } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -38,6 +40,7 @@ export function SubgroupModal({
   onDelete,
   editSubgroup,
 }: SubgroupModalProps) {
+    useLanguage();
   const [cod, setCod] = useState("");
   const [denumire, setDenumire] = useState("");
   const [grupa, setGrupa] = useState("");
@@ -128,8 +131,8 @@ export function SubgroupModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {editSubgroup
-              ? <><Pencil className="w-4 h-4" /> Edit subgroup</>
-              : <><Plus className="w-4 h-4" /> Add subgroup</>
+              ? <><Pencil className="w-4 h-4" /> {" "}{translate("Edit subgroup")}</>
+              : <><Plus className="w-4 h-4" /> {" "}{translate("Add subgroup")}</>
             }
           </DialogTitle>
         </DialogHeader>
@@ -137,60 +140,60 @@ export function SubgroupModal({
         <div className="space-y-4 py-4">
           {errors.general && (
             <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-              {errors.general}
+              {translateMessage(errors.general)}
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="cod">Cod *</Label>
+            <Label htmlFor="cod">{translate("Cod *")}</Label>
             <Input
               id="cod"
               value={cod}
               onChange={(e) => setCod(e.target.value)}
-              placeholder="Enter cod"
+              placeholder={translate("Enter cod")}
               disabled={isSaving}
               className={errors.cod ? "border-destructive" : ""}
             />
-            {errors.cod && <p className="text-xs text-destructive">{errors.cod}</p>}
+            {errors.cod && <p className="text-xs text-destructive">{translateMessage(errors.cod)}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="denumire">Denumire *</Label>
+            <Label htmlFor="denumire">{translate("Denumire *")}</Label>
             <Input
               id="denumire"
               value={denumire}
               onChange={(e) => setDenumire(e.target.value)}
-              placeholder="Enter denumire"
+              placeholder={translate("Enter denumire")}
               disabled={isSaving}
               className={errors.denumire ? "border-destructive" : ""}
             />
-            {errors.denumire && <p className="text-xs text-destructive">{errors.denumire}</p>}
+            {errors.denumire && <p className="text-xs text-destructive">{translateMessage(errors.denumire)}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="grupa">Grupa *</Label>
+            <Label htmlFor="grupa">{translate("Grupa *")}</Label>
             <Input
               id="grupa"
               value={grupa}
               onChange={(e) => setGrupa(e.target.value)}
-              placeholder="Enter grupa"
+              placeholder={translate("Enter grupa")}
               disabled={isSaving}
               className={errors.grupa ? "border-destructive" : ""}
             />
-            {errors.grupa && <p className="text-xs text-destructive">{errors.grupa}</p>}
+            {errors.grupa && <p className="text-xs text-destructive">{translateMessage(errors.grupa)}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="subgrupa">Subgrupa *</Label>
+            <Label htmlFor="subgrupa">{translate("Subgrupa *")}</Label>
             <Input
               id="subgrupa"
               value={subgrupa}
               onChange={(e) => setSubgrupa(e.target.value)}
-              placeholder="Enter subgrupa"
+              placeholder={translate("Enter subgrupa")}
               disabled={isSaving}
               className={errors.subgrupa ? "border-destructive" : ""}
             />
-            {errors.subgrupa && <p className="text-xs text-destructive">{errors.subgrupa}</p>}
+            {errors.subgrupa && <p className="text-xs text-destructive">{translateMessage(errors.subgrupa)}</p>}
           </div>
         </div>
 
@@ -203,8 +206,7 @@ export function SubgroupModal({
               disabled={isSaving}
             >
               <Trash2 className="w-4 h-4 mr-1" />
-              Delete
-            </Button>
+              {translate("Delete")}</Button>
           )}
           <div className="flex-1" />
           <Button
@@ -214,12 +216,10 @@ export function SubgroupModal({
             disabled={isSaving}
           >
             <X className="w-4 h-4 mr-1" />
-            Cancel
-          </Button>
+            {translate("Cancel")}</Button>
           <Button type="button" onClick={handleSave} disabled={isSaving}>
             {isSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
-            Save
-          </Button>
+            {translate("Save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

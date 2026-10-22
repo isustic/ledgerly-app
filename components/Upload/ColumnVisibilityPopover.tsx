@@ -1,5 +1,7 @@
 "use client";
 
+import { translate } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState, useEffect } from "react";
 import { Columns, Check, X, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,6 +36,7 @@ export function ColumnVisibilityPopover({
     onShowAll,
     onHideAll,
 }: ColumnVisibilityPopoverProps) {
+    useLanguage();
     const [isOpen, setIsOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -75,11 +78,11 @@ export function ColumnVisibilityPopover({
                 onClick={() => setIsOpen((prev) => !prev)}
                 aria-expanded={isOpen}
                 aria-haspopup="dialog"
-                className="h-8 gap-1.5 border-border/50 bg-background/60"
+                className="h-9 gap-1.5 bg-card"
             >
                 <Columns className="w-3.5 h-3.5" />
                 <span className="text-xs">
-                    Columns ({visibleCount}/{columns.length})
+                    {translate("Columns (")}{visibleCount}/{columns.length})
                 </span>
             </Button>
 
@@ -94,36 +97,33 @@ export function ColumnVisibilityPopover({
 
             {/* Popover */}
             {isOpen && (
-                <div className="absolute right-0 top-full mt-1 w-72 bg-card border border-border/50 rounded-lg shadow-lg z-50 animate-fade-in">
+                <div className="absolute right-0 top-full mt-1.5 w-72 bg-card border border-border rounded-xl shadow-lg z-50 animate-fade-in">
                     {/* Header with search */}
-                    <div className="p-3 border-b border-border/50">
+                    <div className="p-3 border-b border-border">
                         <Input
-                            placeholder="Filter columns…"
+                            placeholder={translate("Filter columns…")}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="h-8 text-xs bg-background/60 border-border/50"
+                            className="h-8 text-xs bg-background"
                             autoFocus
                         />
                     </div>
 
                     {/* Action buttons */}
-                    <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                            Visibility
-                        </span>
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                        <span className="text-xs font-medium text-muted-foreground">
+                            {translate("Visibility")}</span>
                         <div className="flex items-center gap-1">
                             <button
                                 onClick={onShowAll}
-                                className="px-2 py-1 rounded text-[10px] font-medium text-muted-foreground hover:bg-muted/60 transition-colors"
+                                className="px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:bg-muted/60 transition-colors"
                             >
-                                Show all
-                            </button>
+                                {translate("Show all")}</button>
                             <button
                                 onClick={onHideAll}
-                                className="px-2 py-1 rounded text-[10px] font-medium text-muted-foreground hover:bg-muted/60 transition-colors"
+                                className="px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:bg-muted/60 transition-colors"
                             >
-                                Hide all
-                            </button>
+                                {translate("Hide all")}</button>
                         </div>
                     </div>
 
@@ -131,7 +131,7 @@ export function ColumnVisibilityPopover({
                     <div className="max-h-64 overflow-y-auto">
                         {filteredColumns.length === 0 ? (
                             <div className="py-8 text-center">
-                                <p className="text-xs text-muted-foreground">No columns found</p>
+                                <p className="text-xs text-muted-foreground">{translate("No columns found")}</p>
                             </div>
                         ) : (
                             <ul className="py-1">
@@ -188,10 +188,9 @@ export function ColumnVisibilityPopover({
                     </div>
 
                     {/* Footer */}
-                    <div className="px-3 py-2 border-t border-border/50 bg-muted/20">
-                        <p className="text-[10px] text-muted-foreground">
-                            {visibleCount} visible, {hiddenCols.size} hidden
-                        </p>
+                    <div className="px-3 py-2 border-t border-border bg-muted/20">
+                        <p className="text-xs text-muted-foreground font-data">
+                            {visibleCount} {" "}{translate("visible,")}{" "}{hiddenCols.size} {" "}{translate("hidden")}</p>
                     </div>
                 </div>
             )}

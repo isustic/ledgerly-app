@@ -1,6 +1,9 @@
 "use client";
 
+import { translate } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState, useEffect } from "react";
+import { X } from "lucide-react";
 import { AUTOCOMPLETE_FUNCTIONS } from "./constants";
 
 interface FormulaBuilderProps {
@@ -25,6 +28,7 @@ const BUILDER_FUNCTIONS = AUTOCOMPLETE_FUNCTIONS
     }));
 
 export function FormulaBuilder({ columns, onFormulaChange, currentFormula }: FormulaBuilderProps) {
+    useLanguage();
     const [steps, setSteps] = useState<BuildStep[]>([]);
 
     // Sync currentFormula to steps when switching from Code mode
@@ -106,22 +110,20 @@ export function FormulaBuilder({ columns, onFormulaChange, currentFormula }: For
     return (
         <div className="space-y-4">
             {/* Generated Formula Preview */}
-            <div className="bg-background/50 rounded-lg p-3 border border-border/30">
-                <p className="text-[10px] text-muted-foreground mb-1">Your formula:</p>
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{translate("Your formula:")}</p>
                 {currentFormula ? (
-                    <p className="font-mono text-sm">{currentFormula}</p>
+                    <p className="font-data break-all text-sm">{currentFormula}</p>
                 ) : (
                     <p className="text-sm text-muted-foreground italic">
-                        Start by selecting a function above, then add columns and operators
-                    </p>
+                        {translate("Start by selecting a function above, then add columns and operators")}</p>
                 )}
             </div>
 
             {/* Function Selection */}
             <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    Start with a function
-                </label>
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {translate("Start with a function")}</label>
                 <div className="grid grid-cols-2 gap-2">
                     {BUILDER_FUNCTIONS.map((fn) => (
                         <button
@@ -131,11 +133,11 @@ export function FormulaBuilder({ columns, onFormulaChange, currentFormula }: For
                                 value: fn.name + "()",
                                 display: fn.display
                             })}
-                            className="px-3 py-2 bg-muted/30 rounded hover:bg-primary/20 transition-colors text-left"
-                            aria-label={`Add ${fn.name} function`}
+                            className="rounded-lg border border-border/60 bg-card px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-accent"
+                            aria-label={translate("Add {0} function", { 0: fn.name })}
                         >
                             <p className="text-sm font-medium">{fn.display}</p>
-                            <p className="text-[10px] text-muted-foreground">{fn.category}</p>
+                            <p className="text-[11px] text-muted-foreground">{translate(fn.category)}</p>
                         </button>
                     ))}
                 </div>
@@ -143,9 +145,8 @@ export function FormulaBuilder({ columns, onFormulaChange, currentFormula }: For
 
             {/* Column Selection */}
             <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    Add a column
-                </label>
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {translate("Add a column")}</label>
                 <div className="flex flex-wrap gap-1">
                     {columns.map((col) => (
                         <button
@@ -155,8 +156,8 @@ export function FormulaBuilder({ columns, onFormulaChange, currentFormula }: For
                                 value: col,
                                 display: col
                             })}
-                            className="px-2 py-1 text-xs bg-muted/50 rounded hover:bg-primary/20 transition-colors"
-                            aria-label={`Add ${col} column`}
+                            className="rounded-md border border-border/60 bg-muted/40 px-2 py-1 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-accent hover:text-primary"
+                            aria-label={translate("Add {0} column", { 0: col })}
                         >
                             {col}
                         </button>
@@ -166,9 +167,8 @@ export function FormulaBuilder({ columns, onFormulaChange, currentFormula }: For
 
             {/* Operators */}
             <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    Add an operator
-                </label>
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {translate("Add an operator")}</label>
                 <div className="flex gap-2">
                     {operators.map((op) => (
                         <button
@@ -178,8 +178,8 @@ export function FormulaBuilder({ columns, onFormulaChange, currentFormula }: For
                                 value: op.symbol,
                                 display: op.display
                             })}
-                            className="px-4 py-2 bg-muted/30 rounded hover:bg-primary/20 transition-colors"
-                            aria-label={`Add ${op.symbol} operator`}
+                            className="font-data min-w-12 rounded-lg border border-border/60 bg-card px-4 py-2 text-base font-semibold transition-colors hover:border-primary/40 hover:bg-accent hover:text-primary"
+                            aria-label={translate("Add {0} operator", { 0: op.symbol })}
                         >
                             {op.symbol}
                         </button>
@@ -190,20 +190,19 @@ export function FormulaBuilder({ columns, onFormulaChange, currentFormula }: For
             {/* Current Steps */}
             {steps.length > 0 && (
                 <div className="space-y-2">
-                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Your building blocks
-                    </label>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {translate("Your building blocks")}</label>
                     <div className="flex flex-wrap gap-2">
                         {steps.map((step, index) => (
                             <button
                                 key={index}
                                 onClick={() => removeStep(index)}
-                                className="px-2 py-1 bg-primary/20 rounded text-sm flex items-center gap-1 hover:bg-destructive/20 group"
-                                title="Click to remove"
-                                aria-label="Remove block"
+                                className="group flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-sm font-medium transition-colors hover:border-destructive/40 hover:bg-destructive/10"
+                                title={translate("Click to remove")}
+                                aria-label={translate("Remove block")}
                             >
                                 {step.display}
-                                <span className="text-destructive opacity-0 group-hover:opacity-100">×</span>
+                                <X className="h-3 w-3 text-destructive opacity-0 group-hover:opacity-100" />
                             </button>
                         ))}
                     </div>

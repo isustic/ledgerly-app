@@ -1,5 +1,7 @@
 'use client';
 
+import { translate, translateMessage } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useEffect, useState } from 'react';
 import { safeInvoke, safeListen } from '@/lib/tauri';
 import {
@@ -27,6 +29,7 @@ interface UpdateDialogProps {
 type Phase = 'idle' | 'downloading' | 'installed' | 'error';
 
 export function UpdateDialog({ open, update, onClose }: UpdateDialogProps) {
+    useLanguage();
   const [phase, setPhase] = useState<Phase>('idle');
   const [percent, setPercent] = useState<number | null>(null);
   const [error, setError] = useState('');
@@ -76,11 +79,11 @@ export function UpdateDialog({ open, update, onClose }: UpdateDialogProps) {
     <Dialog open={open} onOpenChange={(o) => !o && !busy && handleClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Update Available</DialogTitle>
+          <DialogTitle>{translate("Update Available")}</DialogTitle>
           <DialogDescription>
             {phase === 'installed'
-              ? 'The update is installed. Restart Ledgerly to finish.'
-              : `Ledgerly ${update?.version ?? ''} is available.`}
+              ? translate("The update is installed. Restart Ledgerly to finish.")
+              : translate("Ledgerly {0} is available.", { 0: update?.version ?? '' })}
           </DialogDescription>
         </DialogHeader>
         {update?.notes && phase === 'idle' && (
@@ -92,21 +95,20 @@ export function UpdateDialog({ open, update, onClose }: UpdateDialogProps) {
           <div className="space-y-2">
             <Progress value={percent ?? 0} />
             <p className="text-xs text-muted-foreground">
-              {percent === null ? 'Downloading…' : `Downloading… ${percent}%`}
+              {percent === null ? translate("Downloading…") : translate("Downloading… {0}%", { 0: percent })}
             </p>
           </div>
         )}
-        {phase === 'error' && <p className="text-xs text-destructive">{error}</p>}
+        {phase === 'error' && <p className="text-xs text-destructive">{translateMessage(error)}</p>}
         <DialogFooter>
           {phase === 'installed' ? (
-            <Button onClick={handleRestart}>Restart Now</Button>
+            <Button onClick={handleRestart}>{translate("Restart Now")}</Button>
           ) : (
             <>
               <Button variant="outline" onClick={handleClose} disabled={busy}>
-                Later
-              </Button>
+                {translate("Later")}</Button>
               <Button onClick={handleInstall} disabled={busy}>
-                {busy ? 'Installing…' : phase === 'error' ? 'Retry' : 'Update Now'}
+                {busy ? translate("Installing…") : phase === 'error' ? translate("Retry") : translate("Update Now")}
               </Button>
             </>
           )}

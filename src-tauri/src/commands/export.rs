@@ -1,3 +1,4 @@
+use crate::i18n::translate;
 use rust_xlsxwriter::{Format, FormatBorder, Workbook, Image};
 use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
@@ -8,6 +9,7 @@ pub async fn export_report(
     columns: Vec<String>,
     template_name: Option<String>,
     chart_image: Option<Vec<u8>>,
+    language: Option<String>,
     app: AppHandle,
 ) -> Result<String, String> {
     // Generate default filename with today's date
@@ -26,7 +28,7 @@ pub async fn export_report(
     let path = app
         .dialog()
         .file()
-        .add_filter("Excel Spreadsheet", &["xlsx"])
+        .add_filter(translate("Excel Spreadsheet", language.as_deref()), &["xlsx"])
         .set_file_name(&default_filename)
         .blocking_save_file()
         .ok_or("Export cancelled")?;

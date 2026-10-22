@@ -1,3 +1,5 @@
+import { getLanguage, translate } from "@/lib/i18n";
+
 /**
  * Safe Tauri API wrappers that handle both Tauri and browser contexts.
  * Use these instead of importing directly from Tauri packages.
@@ -24,7 +26,10 @@ export async function safeInvoke<T>(
             throw new Error('Not running in Tauri context');
         }
     }
-    return invokeCache(command, args) as Promise<T>;
+    const localizedArgs = ["export_report", "export_all_epp_reports", "export_ty_report"].includes(command)
+        ? { ...args, language: getLanguage() }
+        : args;
+    return invokeCache(command, localizedArgs) as Promise<T>;
 }
 
 /**
@@ -41,7 +46,11 @@ export async function safeOpen(
             throw new Error('Not running in Tauri context');
         }
     }
-    return openCache(options as any) as Promise<string | string[] | null>;
+    const localizedOptions = options ? { ...options,
+        ...(typeof options.title === "string" ? { title: translate(options.title) } : {}),
+        ...(Array.isArray(options.filters) ? { filters: options.filters.map((filter: { name: string; extensions: string[] }) => ({ ...filter, name: translate(filter.name) })) } : {}),
+    } : options;
+    return openCache(localizedOptions as any) as Promise<string | string[] | null>;
 }
 
 /**
@@ -77,7 +86,7 @@ export async function safeConfirm(
             return window.confirm(message);
         }
     }
-    return confirmCache(message, { title: title || 'Confirm', kind: 'warning' });
+    return confirmCache(message, { title: title || translate('Confirm'), kind: 'warning', okLabel: translate('Yes'), cancelLabel: translate('Cancel') });
 }
 
 /**

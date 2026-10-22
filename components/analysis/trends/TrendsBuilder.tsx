@@ -1,9 +1,11 @@
 "use client";
 
+import { translate, translateMessage, getLocale } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
-import { Play, LoaderIcon, AlertCircleIcon } from "lucide-react";
+import { Play, LoaderIcon, AlertCircleIcon, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { SparklineChart } from "./SparklineChart";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -43,6 +45,7 @@ function formatPeriod(period: string): string {
 }
 
 export function TrendsBuilder({ datasetId, columns }: TrendsBuilderProps) {
+    useLanguage();
     const [dateColumn, setDateColumn] = useState<string>("");
     const [valueColumn, setValueColumn] = useState<string>("");
     const [period, setPeriod] = useState<"daily" | "weekly" | "monthly" | "quarterly" | "yearly">("monthly");
@@ -101,151 +104,181 @@ export function TrendsBuilder({ datasetId, columns }: TrendsBuilderProps) {
         }
     };
 
+    const selectClass = "h-9 w-full";
+    const labelClass = "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
+    const positive = (n: number) => n >= 0;
+
     return (
         <div className="space-y-6">
-            {/* Config */}
-            <div className="flex flex-wrap gap-4 items-end">
-                <div className="space-y-1">
-                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Date Column</label>
-                    <Select value={dateColumn} onValueChange={setDateColumn} disabled={isLoading}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Select..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {allColumns.map((c) => (
-                                <SelectItem key={c} value={c}>{c}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+            {/* Config toolbar */}
+            <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto] xl:items-end">
+                    <div className="space-y-1.5">
+                        <label className={labelClass}>{translate("Date Column")}</label>
+                        <Select value={dateColumn} onValueChange={setDateColumn} disabled={isLoading}>
+                            <SelectTrigger className={selectClass}>
+                                <SelectValue placeholder={translate("Select...")} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {allColumns.map((c) => (
+                                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                <div className="space-y-1">
-                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Value Column</label>
-                    <Select value={valueColumn} onValueChange={setValueColumn} disabled={isLoading}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Select..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {allColumns.map((c) => (
-                                <SelectItem key={c} value={c}>{c}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                    <div className="space-y-1.5">
+                        <label className={labelClass}>{translate("Value Column")}</label>
+                        <Select value={valueColumn} onValueChange={setValueColumn} disabled={isLoading}>
+                            <SelectTrigger className={selectClass}>
+                                <SelectValue placeholder={translate("Select...")} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {allColumns.map((c) => (
+                                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                <div className="space-y-1">
-                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Period</label>
-                    <Select value={period} onValueChange={(v) => setPeriod(v as "daily" | "weekly" | "monthly" | "quarterly" | "yearly")} disabled={isLoading}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Select..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="daily">Daily</SelectItem>
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                            <SelectItem value="quarterly">Quarterly</SelectItem>
-                            <SelectItem value="yearly">Yearly</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                    <div className="space-y-1.5">
+                        <label className={labelClass}>{translate("Period")}</label>
+                        <Select value={period} onValueChange={(v) => setPeriod(v as "daily" | "weekly" | "monthly" | "quarterly" | "yearly")} disabled={isLoading}>
+                            <SelectTrigger className={selectClass}>
+                                <SelectValue placeholder={translate("Select...")} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="daily">{translate("Daily")}</SelectItem>
+                                <SelectItem value="weekly">{translate("Weekly")}</SelectItem>
+                                <SelectItem value="monthly">{translate("Monthly")}</SelectItem>
+                                <SelectItem value="quarterly">{translate("Quarterly")}</SelectItem>
+                                <SelectItem value="yearly">{translate("Yearly")}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                <div className="space-y-1">
-                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Aggregation</label>
-                    <Select value={aggregation} onValueChange={(v) => setAggregation(v as "sum" | "avg" | "count")} disabled={isLoading}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Select..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="sum">Sum</SelectItem>
-                            <SelectItem value="avg">Average</SelectItem>
-                            <SelectItem value="count">Count</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                    <div className="space-y-1.5">
+                        <label className={labelClass}>{translate("Aggregation")}</label>
+                        <Select value={aggregation} onValueChange={(v) => setAggregation(v as "sum" | "avg" | "count")} disabled={isLoading}>
+                            <SelectTrigger className={selectClass}>
+                                <SelectValue placeholder={translate("Select...")} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="sum">{translate("Sum")}</SelectItem>
+                                <SelectItem value="avg">{translate("Average")}</SelectItem>
+                                <SelectItem value="count">{translate("Count")}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                <Button onClick={handleRun} size="sm" disabled={!dateColumn || !valueColumn || isLoading}>
-                    {isLoading ? (
-                        <LoaderIcon className="w-4 h-4 mr-1 animate-spin" />
-                    ) : (
-                        <Play className="w-4 h-4 mr-1" />
-                    )}
-                    {isLoading ? "Running..." : "Run"}
-                </Button>
+                    <Button
+                        onClick={handleRun}
+                        disabled={!dateColumn || !valueColumn || isLoading}
+                        className="h-9 w-full xl:w-auto xl:px-5"
+                    >
+                        {isLoading ? (
+                            <LoaderIcon className="mr-1.5 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Play className="mr-1.5 h-4 w-4" />
+                        )}
+                        {isLoading ? translate("Running...") : translate("Run trends")}
+                    </Button>
+                </div>
             </div>
 
             {/* Error Display */}
             {error && (
                 <Alert variant="destructive">
                     <AlertCircleIcon className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
+                    <AlertDescription>{translateMessage(error)}</AlertDescription>
                 </Alert>
             )}
 
             {/* Loading State */}
             {isLoading && (
-                <div className="flex items-center justify-center py-12">
+                <div className="flex items-center justify-center py-16">
                     <div className="flex flex-col items-center gap-3">
                         <LoaderIcon className="h-8 w-8 text-primary animate-spin" />
-                        <p className="text-sm text-muted-foreground">Running trends analysis...</p>
+                        <p className="text-sm text-muted-foreground">{translate("Running trends analysis...")}</p>
                     </div>
+                </div>
+            )}
+
+            {/* Empty State */}
+            {!isLoading && !formattedData && !error && (
+                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border/70 py-16 text-center">
+                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <TrendingUp className="h-5 w-5" />
+                    </div>
+                    <p className="text-sm font-medium">{translate("Pick a date and a value column")}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{translate("Then choose a period and run the trend.")}</p>
                 </div>
             )}
 
             {/* Results */}
             {!isLoading && formattedData && (
-                <div className="space-y-4">
-                    {/* Chart */}
-                    <div className="bg-card/30 border border-border/40 rounded-xl p-4">
-                        <h3 className="text-xs font-medium text-muted-foreground mb-3">Trend</h3>
-                        <div className="flex justify-center">
-                            <SparklineChart data={formattedData.values} width={400} height={100} />
-                        </div>
-                    </div>
-
+                <div className="space-y-6">
                     {/* Metrics */}
-                    <div className="grid grid-cols-4 gap-4">
-                        <div className="bg-card/30 border border-border/40 rounded-xl p-4">
-                            <p className="text-[10px] text-muted-foreground">Total</p>
-                            <p className="text-lg font-semibold">{formattedData.metrics.total.toLocaleString()}</p>
+                    <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                        <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+                            <p className={labelClass}>{translate("Total")}</p>
+                            <p className="font-data mt-2 text-2xl font-bold tracking-tight">{formattedData.metrics.total.toLocaleString(getLocale())}</p>
                         </div>
-                        <div className="bg-card/30 border border-border/40 rounded-xl p-4">
-                            <p className="text-[10px] text-muted-foreground">Average</p>
-                            <p className="text-lg font-semibold">{formattedData.metrics.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                        <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+                            <p className={labelClass}>{translate("Average")}</p>
+                            <p className="font-data mt-2 text-2xl font-bold tracking-tight">{formattedData.metrics.avg.toLocaleString(getLocale(), { maximumFractionDigits: 0 })}</p>
                         </div>
-                        <div className="bg-card/30 border border-border/40 rounded-xl p-4">
-                            <p className="text-[10px] text-muted-foreground">Min / Max</p>
-                            <p className="text-lg font-semibold">{formattedData.metrics.min} / {formattedData.metrics.max}</p>
+                        <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+                            <p className={labelClass}>{translate("Min / Max")}</p>
+                            <p className="font-data mt-2 text-2xl font-bold tracking-tight">{formattedData.metrics.min} / {formattedData.metrics.max}</p>
                         </div>
-                        <div className="bg-card/30 border border-border/40 rounded-xl p-4">
-                            <p className="text-[10px] text-muted-foreground">Growth</p>
-                            <p className={`text-lg font-semibold ${formattedData.metrics.growth >= 0 ? "text-green-500" : "text-red-500"}`}>
-                                {formattedData.metrics.growth >= 0 ? "+" : ""}{formattedData.metrics.growth.toFixed(1)}%
+                        <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+                            <p className={labelClass}>{translate("Growth")}</p>
+                            <p className={`font-data mt-2 flex items-center gap-1.5 text-2xl font-bold tracking-tight ${positive(formattedData.metrics.growth) ? "text-primary" : "text-destructive"}`}>
+                                {positive(formattedData.metrics.growth) ? <ArrowUpRight className="h-5 w-5" /> : <ArrowDownRight className="h-5 w-5" />}
+                                {formattedData.metrics.growth >= 0 ? "+" : ""}{formattedData.metrics.growth.toLocaleString(getLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
                             </p>
                         </div>
                     </div>
 
+                    {/* Chart */}
+                    <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h3 className="text-sm font-semibold">{translate("Trend")}</h3>
+                            <span className="text-xs text-muted-foreground">{formattedData.periods.length} {translate("periods")}</span>
+                        </div>
+                        <div className="flex justify-center">
+                            <SparklineChart data={formattedData.values} width={800} height={160} />
+                        </div>
+                    </div>
+
                     {/* Table */}
-                    <div className="bg-card/30 border border-border/40 rounded-xl overflow-auto">
-                        <table className="w-full text-sm">
-                            <thead className="bg-muted/30">
-                                <tr>
-                                    <th className="px-4 py-2 text-left">Period</th>
-                                    <th className="px-4 py-2 text-right">Value</th>
-                                    <th className="px-4 py-2 text-right">Change</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {formattedData.periods.map((period, i) => (
-                                    <tr key={i} className="border-t border-border/20">
-                                        <td className="px-4 py-2">{period}</td>
-                                        <td className="px-4 py-2 text-right">{formattedData.values[i]?.toLocaleString()}</td>
-                                        <td className={`px-4 py-2 text-right ${i > 0 && formattedData.values[i] >= formattedData.values[i-1] ? "text-green-500" : "text-red-500"}`}>
-                                            {i > 0 ? ((formattedData.values[i] - formattedData.values[i-1]) / formattedData.values[i-1] * 100).toFixed(1) + "%" : "-"}
-                                        </td>
+                    <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+                        <div className="max-h-[420px] overflow-auto">
+                            <table className="w-full text-sm">
+                                <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur">
+                                    <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="px-4 py-2.5">{translate("Period")}</th>
+                                        <th className="px-4 py-2.5 text-right">{translate("Value")}</th>
+                                        <th className="px-4 py-2.5 text-right">{translate("Change")}</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {formattedData.periods.map((period, i) => {
+                                        const change = i > 0 ? (formattedData.values[i] - formattedData.values[i - 1]) / formattedData.values[i - 1] * 100 : null;
+                                        return (
+                                            <tr key={i} className="border-t border-border/50 transition-colors hover:bg-muted/40">
+                                                <td className="px-4 py-2 font-medium">{period}</td>
+                                                <td className="font-data px-4 py-2 text-right">{formattedData.values[i]?.toLocaleString(getLocale())}</td>
+                                                <td className={`font-data px-4 py-2 text-right ${change === null ? "text-muted-foreground" : change >= 0 ? "text-primary" : "text-destructive"}`}>
+                                                    {change === null ? "–" : `${change.toLocaleString(getLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}

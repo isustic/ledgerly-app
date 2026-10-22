@@ -1,5 +1,7 @@
 "use client";
 
+import { translate, getLocale } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/Upload/DataTable";
@@ -23,7 +25,7 @@ interface HistoricDataModalProps {
 function formatEnglishDate(dateString: string): string {
     const date = new Date(dateString);
     const day = date.getDate();
-    const month = ENGLISH_MONTHS[date.getMonth()];
+    const month = translate(ENGLISH_MONTHS[date.getMonth()]);
     const year = date.getFullYear();
     const hours = date.getHours().toString().padStart(2, "0");
     const minutes = date.getMinutes().toString().padStart(2, "0");
@@ -40,13 +42,14 @@ export function HistoricDataModal({
     rowCount,
     createdAt,
 }: HistoricDataModalProps) {
+    useLanguage();
     const formattedDate = formatEnglishDate(createdAt);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent showCloseButton={false} className="!w-[96vw] !max-w-none h-[90vh] p-0 gap-0 flex flex-col">
                 {/* Visually hidden title for accessibility */}
-                <DialogTitle className="sr-only">{datasetName} - Historic Data</DialogTitle>
+                <DialogTitle className="sr-only">{datasetName} {" "}{translate("- Historic Data")}</DialogTitle>
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-card/30">
@@ -57,7 +60,7 @@ export function HistoricDataModal({
                             <span className="w-1 h-1 rounded-full bg-border" />
                             <span>{formattedDate}</span>
                             <span className="w-1 h-1 rounded-full bg-border" />
-                            <span>{rowCount.toLocaleString()} rows</span>
+                            <span>{rowCount.toLocaleString(getLocale())} {" "}{translate("rows")}</span>
                         </div>
                     </div>
                     <Button

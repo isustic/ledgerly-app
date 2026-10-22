@@ -1,5 +1,7 @@
 "use client";
 
+import { translate, translateMessage } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Loader2, Users, Plus, X } from "lucide-react";
@@ -27,6 +29,7 @@ interface ClientCombination {
 }
 
 export default function ClientsPage() {
+    useLanguage();
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [clients, setClients] = useState<string[]>([]);
@@ -145,25 +148,21 @@ export default function ClientsPage() {
         <div className="px-4 pt-4 pb-2 border-b border-border/50">
           <h1 className="text-sm font-semibold flex items-center gap-2">
             <Users className="w-4 h-4 text-primary" />
-            Client Combinations
-          </h1>
+            {translate("Client Combinations")}</h1>
           <p className="text-[10px] text-muted-foreground mb-3">
-            Group clients for EPro reports
-          </p>
+            {translate("Group clients for EPro reports")}</p>
 
           <div className="space-y-1.5">
             <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              Agent
-            </label>
+              {translate("Agent")}</label>
             <Select value={selectedAgent ?? ""} onValueChange={(v) => setSelectedAgent(v || null)}>
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Select an agent" />
+                <SelectValue placeholder={translate("Select an agent")} />
               </SelectTrigger>
               <SelectContent>
                 {agents.map((a) => (
                   <SelectItem key={a.name} value={a.name} className="text-xs">
-                    {a.name} ({a.client_count} clients)
-                  </SelectItem>
+                    {a.name} ({a.client_count} {" "}{translate("clients)")}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -174,31 +173,30 @@ export default function ClientsPage() {
           {loading && (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              <span className="text-xs">Loading...</span>
+              <span className="text-xs">{translate("Loading...")}</span>
             </div>
           )}
 
           {!loading && !selectedAgent && (
             <p className="text-xs text-muted-foreground text-center py-8">
-              Select an agent to combine clients.
-            </p>
+              {translate("Select an agent to combine clients.")}</p>
           )}
 
           {!loading && selectedAgent && (
             <>
               <div className="mb-4">
                 <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                  {editingId ? "Edit clients" : "Select clients (min 2)"}
+                  {editingId ? translate("Edit clients") : translate("Select clients (min 2)")}
                 </label>
                 <Input
-                  placeholder="Search clients..."
+                  placeholder={translate("Search clients...")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="h-8 text-xs mb-2"
                 />
                 <div className="border border-border/50 rounded-md max-h-40 overflow-auto">
                   {filteredClients.length === 0 && (
-                    <p className="text-xs text-muted-foreground p-2">No clients found</p>
+                    <p className="text-xs text-muted-foreground p-2">{translate("No clients found")}</p>
                   )}
                   {filteredClients.map((c) => {
                     const selected = clients.includes(c);
@@ -246,18 +244,16 @@ export default function ClientsPage() {
                 {clients.length >= 2 && !editingId && (
                   <Button size="sm" className="mt-3 w-full h-7 text-xs gap-1" onClick={handleSave} disabled={saving}>
                     <Plus size={12} />
-                    Save Combination
-                  </Button>
+                    {translate("Save Combination")}</Button>
                 )}
 
                 {editingId && (
                   <div className="flex gap-2 mt-3">
                     <Button size="sm" className="flex-1 h-7 text-xs" onClick={handleSave} disabled={saving}>
-                      {saving ? "Saving..." : "Update"}
+                      {saving ? translate("Saving...") : translate("Update")}
                     </Button>
                     <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={cancelEdit}>
-                      Cancel
-                    </Button>
+                      {translate("Cancel")}</Button>
                   </div>
                 )}
               </div>
@@ -265,8 +261,7 @@ export default function ClientsPage() {
               {combinations.length > 0 && (
                 <div>
                   <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                    Saved combinations
-                  </label>
+                    {translate("Saved combinations")}</label>
                   <div className="space-y-2">
                     {combinations.map((combo) => (
                       <div
@@ -277,8 +272,7 @@ export default function ClientsPage() {
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium truncate">{displayName(combo)}</p>
                             <p className="text-[10px] text-muted-foreground">
-                              {combo.members.length} clients
-                            </p>
+                              {combo.members.length} {" "}{translate("clients")}</p>
                           </div>
                           <div className="flex gap-1 shrink-0">
                             <button
@@ -311,8 +305,7 @@ export default function ClientsPage() {
 
               {combinations.length === 0 && !editingId && (
                 <p className="text-xs text-muted-foreground text-center py-4">
-                  No combinations saved yet. Select 2+ clients above.
-                </p>
+                  {translate("No combinations saved yet. Select 2+ clients above.")}</p>
               )}
             </>
           )}
@@ -322,29 +315,27 @@ export default function ClientsPage() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="px-6 py-4 border-b border-border/50 bg-card/30">
           <h2 className="text-sm font-semibold">
-            {selectedAgent ? selectedAgent : "Client Combinations"}
+            {selectedAgent ? selectedAgent : translate("Client Combinations")}
           </h2>
           <p className="text-[10px] text-muted-foreground">
             {selectedAgent && combinations.length > 0
-              ? `${combinations.length} combination${combinations.length !== 1 ? "s" : ""} saved`
-              : "Build combined client groups for EPro reporting"}
+              ? translate(combinations.length === 1 ? "{count} combination saved" : "{count} combinations saved", { count: combinations.length })
+              : translate("Build combined client groups for EPro reporting")}
           </p>
         </div>
         <div className="flex-1 overflow-auto p-6">
           {error && (
             <div className="p-3 rounded-md bg-destructive/10 text-destructive text-xs mb-4">
-              {error}
+              {translateMessage(error)}
             </div>
           )}
 
           {!selectedAgent && (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
               <Users className="w-12 h-12 opacity-20" />
-              <p className="text-sm font-medium">No agent selected</p>
+              <p className="text-sm font-medium">{translate("No agent selected")}</p>
               <p className="text-xs max-w-sm text-center">
-                Select an agent from the left panel to build client combinations
-                for EPro reporting.
-              </p>
+                {translate("Select an agent from the left panel to build client combinations for EPro reporting.")}</p>
             </div>
           )}
 
@@ -354,8 +345,7 @@ export default function ClientsPage() {
                 <div key={combo.id} className="p-4 rounded-lg border border-border/50 bg-card/50">
                   <h3 className="text-sm font-semibold">{displayName(combo)}</h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {combo.members.length} client members
-                  </p>
+                    {combo.members.length} {" "}{translate("client members")}</p>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {combo.members.map((m) => (
                       <span key={m.client_key} className="inline-flex px-2 py-0.5 rounded-md bg-primary/5 text-xs">
@@ -371,10 +361,9 @@ export default function ClientsPage() {
           {selectedAgent && combinations.length === 0 && !editingId && (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
               <Plus className="w-10 h-10 opacity-20" />
-              <p className="text-sm font-medium">No combinations yet</p>
+              <p className="text-sm font-medium">{translate("No combinations yet")}</p>
               <p className="text-xs max-w-sm text-center">
-                Select 2 or more clients from the left panel and save them as a combination.
-              </p>
+                {translate("Select 2 or more clients from the left panel and save them as a combination.")}</p>
             </div>
           )}
         </div>

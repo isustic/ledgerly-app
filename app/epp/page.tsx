@@ -1,369 +1,455 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { translate } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
+import { useState, useEffect, useMemo, Suspense, type ReactNode } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { invoke } from "@tauri-apps/api/core";
-import { Loader2, FileSpreadsheet, Database, Download, Calendar } from "lucide-react";
+import { Loader2, FileSpreadsheet, Download, Calendar, Users, Upload, RotateCcw, type LucideIcon } from "lucide-react";
 import { AgentList, AgentInfo } from "@/components/epp/AgentList";
 import { EppReportTable, EppRow } from "@/components/epp/EppReportTable";
 import { SummaryCards } from "@/components/epp/SummaryCards";
-import { Button } from "@/components/ui/button";
+import { DatasetSelector } from "@/components/analysis/DatasetSelector";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getLastOpenedDataset, setLastOpenedDataset } from "@/lib/dataset-tracking";
+import { isQualified } from "@/lib/epp";
+import { cn } from "@/lib/utils";
 
 interface Dataset {
   id: number;
   name: string;
 }
 
+interface EppReport {
+  agent_name: string;
+  year: number;
+  rows: EppRow[];
+}
+
+function ReportSkeleton() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4 p-6" aria-busy="true" aria-label={translate("Loading")}>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="h-[76px] animate-pulse rounded-xl border border-border/60 bg-muted/50" />
+        ))}
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="border-b border-border px-4 py-3">
+          <div className="h-9 w-64 animate-pulse rounded-md bg-muted" />
+        </div>
+        <div className="space-y-3 p-4">
+          {Array.from({ length: 8 }, (_, i) => (
+            <div key={i} className="flex animate-pulse gap-6">
+              <div className="h-3 w-40 rounded bg-muted" />
+              <div className="h-3 w-24 rounded bg-muted" />
+              <div className="ml-auto h-3 w-24 rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyPanel({
+  icon: Icon,
+  title,
+  description,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-1 items-center justify-center p-6">
+      <div className="flex max-w-md animate-fade-in flex-col items-center gap-4 rounded-xl border border-border bg-card p-8 text-center shadow-sm">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Icon className="h-6 w-6" />
+        </div>
+        <div>
+          <h2 className="text-base font-semibold">{title}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function EProPageContent() {
+  useLanguage();
   const searchParams = useSearchParams();
+  const urlDatasetId = searchParams.get("dataset");
 
-  // Dataset state
-  const [datasets, setDatasets] = useState<Dataset[]>([]);
+  // Dataset
+  const [datasets, setDatasets] = useState<Dataset[] | null>(null);
   const [selectedDatasetId, setSelectedDatasetId] = useState<number | null>(null);
+  const [datasetError, setDatasetError] = useState<string | null>(null);
 
-  // Agent list state
+  // Agents
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [agentsError, setAgentsError] = useState<string | null>(null);
+  const [agentSearch, setAgentSearch] = useState("");
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
-  // Report state
-  const [reportData, setReportData] = useState<{
-    agent_name: string;
-    year: number;
-    rows: EppRow[];
-  } | null>(null);
+  // Report
+  const [reportData, setReportData] = useState<EppReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [clientQuery, setClientQuery] = useState("");
   const [showQualifiedOnly, setShowQualifiedOnly] = useState(false);
 
-  // Export-all state
+  // Export all
   const [exportingAll, setExportingAll] = useState(false);
+  const [exportMessage, setExportMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
-  // Load datasets on mount
+  // Load datasets. Prefer the dataset in the URL, then the last one opened, then the first.
   useEffect(() => {
-    loadDatasets();
-  }, []);
-
-  // Handle dataset pre-selection from URL
-  useEffect(() => {
-    const datasetId = searchParams.get("dataset");
-    if (datasetId && datasets.length > 0) {
-      const found = datasets.find((d) => d.id === Number(datasetId));
-      if (found) {
-        setSelectedDatasetId(found.id);
+    let cancelled = false;
+    (async () => {
+      setDatasetError(null);
+      try {
+        const result = await invoke<Dataset[]>("list_datasets");
+        if (cancelled) return;
+        setDatasets(result);
+        const fromUrl = urlDatasetId ? result.find((d) => d.id === Number(urlDatasetId)) : undefined;
+        const remembered = result.find((d) => d.id === getLastOpenedDataset());
+        const pick = fromUrl ?? remembered ?? result[0];
+        setSelectedDatasetId(pick?.id ?? null);
+      } catch (err) {
+        console.error("Failed to load datasets:", err);
+        if (!cancelled) {
+          setDatasets([]);
+          setDatasetError(String(err));
+        }
       }
-    }
-  }, [datasets, searchParams]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [urlDatasetId, reloadKey]);
 
-  const loadDatasets = async () => {
-    try {
-      const result = await invoke<Dataset[]>("list_datasets");
-      setDatasets(result);
-      if (result.length > 0) {
-        setSelectedDatasetId(result[0].id);
-      }
-    } catch (err) {
-      console.error("Failed to load datasets:", err);
-    }
-  };
-
-  // Load agents when dataset changes
+  // Load the agent list for the selected dataset.
   useEffect(() => {
-    if (selectedDatasetId) {
-      loadAgentsForDataset(selectedDatasetId);
-    } else {
-      setAgents([]);
-    }
-    // Reset agent selection and report when dataset changes
-    setSelectedAgent(null);
-    setReportData(null);
+    if (!selectedDatasetId) return;
+    let cancelled = false;
+    (async () => {
+      setAgentsLoading(true);
+      setAgentsError(null);
+      try {
+        const result = await invoke<Array<{ name: string; client_count: number }>>("get_agents_for_dataset", {
+          datasetId: selectedDatasetId,
+        });
+        if (!cancelled) setAgents(result.map((a) => ({ name: a.name, client_count: a.client_count })));
+      } catch (err) {
+        console.error("Failed to load agents:", err);
+        if (!cancelled) {
+          setAgents([]);
+          setAgentsError(String(err));
+        }
+      } finally {
+        if (!cancelled) setAgentsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedDatasetId]);
 
-  const loadAgentsForDataset = async (datasetId: number) => {
-    setAgentsLoading(true);
-    try {
-      const result = await invoke<Array<{ name: string; client_count: number }>>(
-        "get_agents_for_dataset",
-        { datasetId }
-      );
-      setAgents(
-        result.map((a) => ({
-          name: a.name,
-          client_count: a.client_count,
-        }))
-      );
-    } catch (err) {
-      console.error("Failed to load agents:", err);
-      setAgents([]);
-    } finally {
-      setAgentsLoading(false);
-    }
-  };
-
-  // Generate report when agent is selected
+  // Generate the report for the selected agent, year and dataset.
   useEffect(() => {
-    if (selectedAgent && selectedDatasetId) {
-      generateReport(selectedAgent, selectedYear, selectedDatasetId);
-    } else {
-      setReportData(null);
-    }
-  }, [selectedAgent, selectedYear, selectedDatasetId]);
+    if (!selectedAgent || !selectedDatasetId) return;
+    let cancelled = false;
+    (async () => {
+      setReportLoading(true);
+      setReportError(null);
+      try {
+        const result = await invoke<EppReport>("generate_epp_report", {
+          agentName: selectedAgent,
+          year: selectedYear,
+          datasetId: selectedDatasetId,
+        });
+        if (!cancelled) setReportData(result);
+      } catch (err) {
+        console.error("Failed to generate report:", err);
+        if (!cancelled) {
+          setReportData(null);
+          setReportError(String(err));
+        }
+      } finally {
+        if (!cancelled) setReportLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedAgent, selectedYear, selectedDatasetId, reloadKey]);
 
-  const generateReport = async (agent: string, year: number, datasetId: number) => {
-    setReportLoading(true);
-    try {
-      const result = await invoke<{
-        agent_name: string;
-        year: number;
-        rows: EppRow[];
-      }>("generate_epp_report", {
-        agentName: agent,
-        year: year,
-        datasetId: datasetId,
-      });
-      setReportData(result);
-    } catch (err) {
-      console.error("Failed to generate report:", err);
-      setReportData(null);
-    } finally {
-      setReportLoading(false);
-    }
+  const handleDatasetChange = (datasetId: number) => {
+    setLastOpenedDataset(datasetId);
+    setSelectedDatasetId(datasetId);
+    setSelectedAgent(null);
+    setReportData(null);
+    setReportError(null);
+    setAgentSearch("");
+    setClientQuery("");
   };
 
-  // Export all agents
+  const handleSelectAgent = (name: string) => {
+    setSelectedAgent(name);
+    setReportData(null);
+    setReportError(null);
+    setClientQuery("");
+  };
+
   const handleExportAll = async () => {
     if (!selectedDatasetId) return;
     setExportingAll(true);
+    setExportMessage(null);
     try {
-      await invoke("export_all_epp_reports", {
-        datasetId: selectedDatasetId,
-        year: selectedYear,
-      });
+      await invoke("export_all_epp_reports", { datasetId: selectedDatasetId, year: selectedYear });
+      setExportMessage({ tone: "success", text: translate("Export finished.") });
     } catch (err) {
-      // User cancelled or error — either way we're done
       console.error("Export all failed:", err);
+      setExportMessage({ tone: "error", text: translate("Export failed. Please try again.") });
     } finally {
       setExportingAll(false);
     }
   };
 
-  // Filter rows by qualified status
-  const filteredRows = reportData
-    ? reportData.rows.filter((row) =>
-        showQualifiedOnly
-          ? row.total >= 18000 && row.program !== "-" && row.program !== ""
-          : true
-      )
-    : [];
+  // Client search first, then the qualified filter. Summary cards read the same lists as the table.
+  const reportRows = useMemo(() => reportData?.rows ?? [], [reportData]);
+  const searchedRows = useMemo(() => {
+    const query = clientQuery.trim().toLowerCase();
+    return query ? reportRows.filter((row) => row.client.toLowerCase().includes(query)) : reportRows;
+  }, [reportRows, clientQuery]);
+  const visibleRows = useMemo(
+    () => (showQualifiedOnly ? searchedRows.filter(isQualified) : searchedRows),
+    [searchedRows, showQualifiedOnly]
+  );
+  const qualifiedCount = useMemo(() => searchedRows.filter(isQualified).length, [searchedRows]);
+  const totalAnual = visibleRows.reduce((sum, row) => sum + row.total_anual, 0);
 
-  // Calculate summary stats from filtered rows
-  const summaryStats = reportData
-    ? {
-        agentName: reportData.agent_name,
-        clientCount: filteredRows.length,
-        totalAnual: filteredRows.reduce(
-          (sum, row) => sum + row.total_anual,
-          0
-        ),
-        averagePerClient:
-          filteredRows.length > 0
-            ? filteredRows.reduce((sum, row) => sum + row.total_anual, 0) /
-              filteredRows.length
-            : 0,
-      }
-    : null;
+  const yearOptions = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i);
+  const noDatasets = datasets !== null && datasets.length === 0 && !datasetError;
+
+  const renderMain = () => {
+    if (datasetError) {
+      return (
+        <div className="p-6">
+          <Alert variant="destructive" className="py-2.5">
+            <AlertDescription className="flex items-center justify-between gap-3">
+              <span>{translate("Couldn’t load datasets.")}</span>
+              <Button variant="outline" size="sm" className="bg-background" onClick={() => setReloadKey((k) => k + 1)}>
+                <RotateCcw className="h-3.5 w-3.5" />
+                {translate("Try again")}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+
+    if (noDatasets) {
+      return (
+        <EmptyPanel
+          icon={Upload}
+          title={translate("No datasets yet")}
+          description={translate("Import an Excel file in Raw data to generate EPro reports.")}
+        >
+          <Link href="/upload" className={buttonVariants({ size: "sm" })}>
+            {translate("Go to Raw data")}
+          </Link>
+        </EmptyPanel>
+      );
+    }
+
+    if (!selectedAgent) {
+      return (
+        <EmptyPanel
+          icon={FileSpreadsheet}
+          title={translate("Select an agent")}
+          description={translate("Choose a dataset and an agent to generate their quarterly EPro report.")}
+        />
+      );
+    }
+
+    if (reportError) {
+      return (
+        <div className="p-6">
+          <Alert variant="destructive" className="py-2.5">
+            <AlertDescription className="flex items-center justify-between gap-3">
+              <span>{translate("Couldn’t generate the report for {agent}.", { agent: selectedAgent })}</span>
+              <Button variant="outline" size="sm" className="bg-background" onClick={() => setReloadKey((k) => k + 1)}>
+                <RotateCcw className="h-3.5 w-3.5" />
+                {translate("Try again")}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+
+    if (reportLoading && !reportData) {
+      return <ReportSkeleton />;
+    }
+
+    if (!reportData || reportData.rows.length === 0) {
+      return (
+        <EmptyPanel
+          icon={Users}
+          title={translate("No clients found for {agent}", { agent: selectedAgent })}
+          description={translate("Try selecting a different agent or import more data.")}
+        />
+      );
+    }
+
+    return (
+      <div
+        aria-busy={reportLoading}
+        className={cn(
+          "flex flex-col gap-4 p-4 transition-opacity duration-150 xl:p-6",
+          reportLoading && "opacity-60"
+        )}
+      >
+        <div className="flex shrink-0 flex-wrap items-end justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-primary">
+              {translate("EPro Report")} · {reportData.year}
+            </p>
+            <h2 className="truncate text-xl font-semibold tracking-tight">{reportData.agent_name}</h2>
+          </div>
+        </div>
+
+        <SummaryCards
+          className="shrink-0"
+          clientCount={visibleRows.length}
+          qualifiedCount={qualifiedCount}
+          totalAnual={totalAnual}
+          averagePerClient={visibleRows.length > 0 ? totalAnual / visibleRows.length : 0}
+        />
+
+        <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <EppReportTable
+            rows={visibleRows}
+            totalRowCount={reportRows.length}
+            agentName={reportData.agent_name}
+            year={reportData.year}
+            query={clientQuery}
+            onQueryChange={setClientQuery}
+            showQualifiedOnly={showQualifiedOnly}
+            onQualifiedFilterChange={setShowQualifiedOnly}
+          />
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="flex h-full bg-background/50">
-      {/* LEFT PANEL - Agent Selection & Export */}
-      <aside className="w-80 shrink-0 border-r border-border/50 bg-card flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="px-4 pt-4 pb-3 border-b border-border/50 space-y-3">
-          <div>
-            <h1 className="text-sm font-semibold flex items-center gap-2">
-              <FileSpreadsheet className="w-4 h-4 text-primary" />
-              EPro Reports
-            </h1>
-            <p className="text-[10px] text-muted-foreground">
-              Select dataset and agent
+    <div className="flex h-full min-h-0 flex-col bg-background">
+      {/* Header */}
+      <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-card px-6 py-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <FileSpreadsheet className="h-4.5 w-4.5" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="truncate text-base font-semibold tracking-tight">{translate("EPro Reports")}</h1>
+            <p className="truncate text-xs text-muted-foreground">
+              {translate("Quarterly agent reports and program tiers")}
             </p>
           </div>
+        </div>
 
-          {/* Dataset Selector */}
-          <div className="space-y-1.5">
-            <label className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              <Database className="w-3 h-3" />
-              Dataset
-            </label>
-            <Select
-              value={selectedDatasetId?.toString() ?? ""}
-              onValueChange={(v) => setSelectedDatasetId(Number(v))}
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Select dataset" />
+        <div className="flex flex-wrap items-center gap-2">
+          <DatasetSelector value={selectedDatasetId} onChange={handleDatasetChange} />
+
+          <div className="w-[7.5rem]">
+            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+              <SelectTrigger className="h-9 w-full gap-2" aria-label={translate("Year")}>
+                <Calendar className="h-3.5 w-3.5 shrink-0 text-primary" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {datasets.map((d) => (
-                  <SelectItem key={d.id} value={String(d.id)}>
-                    {d.name}
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Year Selector */}
-          <div className="space-y-1.5">
-            <label className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              <Calendar className="w-3 h-3" />
-              Year
-            </label>
-            <Select
-              value={String(selectedYear)}
-              onValueChange={(v) => setSelectedYear(Number(v))}
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: 10 }, (_, i) => {
-                  const year = new Date().getFullYear() - 5 + i;
-                  return (
-                    <SelectItem key={year} value={String(year)}>
-                      {year}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Export All Button */}
           <Button
-            size="sm"
             variant="outline"
-            className="w-full gap-2 h-9"
+            className="h-9 gap-2"
             disabled={!selectedDatasetId || exportingAll}
             onClick={handleExportAll}
           >
-            {exportingAll ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Exporting all agents...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                Export all agents
-              </>
-            )}
+            {exportingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {exportingAll ? translate("Exporting all agents...") : translate("Export all agents")}
           </Button>
         </div>
+      </header>
 
-        {/* Agent List */}
-        <AgentList
-          agents={agents}
-          selectedAgent={selectedAgent}
-          onSelectAgent={setSelectedAgent}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          isLoading={agentsLoading}
-        />
-      </aside>
+      {exportMessage && (
+        <div
+          role="status"
+          className={cn(
+            "shrink-0 border-b px-6 py-2 text-xs",
+            exportMessage.tone === "error"
+              ? "border-destructive/20 bg-destructive/10 text-destructive"
+              : "border-border bg-muted/40 text-muted-foreground"
+          )}
+        >
+          {exportMessage.text}
+        </div>
+      )}
 
-      {/* RIGHT PANEL - Report Display */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {reportLoading ? (
-          // Loading state
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-              <p className="text-sm text-muted-foreground">
-                Generating report for {selectedAgent}...
-              </p>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+        {/* Agent panel */}
+        <aside className="flex max-h-[40vh] shrink-0 flex-col border-b border-border/60 bg-card lg:max-h-none lg:w-72 lg:border-b-0 lg:border-r xl:w-80">
+          <AgentList
+            agents={selectedDatasetId ? agents : []}
+            selectedAgent={selectedAgent}
+            onSelectAgent={handleSelectAgent}
+            searchQuery={agentSearch}
+            onSearchChange={setAgentSearch}
+            isLoading={datasets === null || agentsLoading}
+          />
+          {agentsError && (
+            <div className="border-t border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+              {translate("Couldn’t load agents.")}
             </div>
-          </div>
-        ) : selectedAgent && reportData && reportData.rows.length > 0 ? (
-          // Report display
-          <>
-            {/* Report header (simplified - year selector moved to sidebar) */}
-            <div className="px-6 py-3 border-b border-border/50 bg-card/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-semibold">{selectedAgent}</h2>
-                  <p className="text-[11px] text-muted-foreground">
-                    EPro Report {reportData.year}
-                  </p>
-                </div>
-              </div>
-            </div>
+          )}
+        </aside>
 
-            {/* Summary cards */}
-            <div className="px-6 py-2">
-              {summaryStats && (
-                <SummaryCards
-                  agentName={summaryStats.agentName}
-                  clientCount={summaryStats.clientCount}
-                  totalAnual={summaryStats.totalAnual}
-                  averagePerClient={summaryStats.averagePerClient}
-                />
-              )}
-            </div>
-
-            {/* Report table */}
-            <div className="flex-1 px-6 pb-4 min-h-0">
-              <div className="h-full border border-border/50 rounded-lg overflow-hidden bg-card/20">
-                <EppReportTable
-                  rows={reportData.rows}
-                  agentName={reportData.agent_name}
-                  year={reportData.year}
-                  showQualifiedOnly={showQualifiedOnly}
-                  onQualifiedFilterChange={setShowQualifiedOnly}
-                />
-              </div>
-            </div>
-          </>
-        ) : selectedAgent ? (
-          // No data for agent
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <FileSpreadsheet className="w-12 h-12 text-muted-foreground/30 mx-auto" />
-              <p className="text-sm text-muted-foreground">
-                No clients found for <strong>{selectedAgent}</strong>
-              </p>
-              <p className="text-xs text-muted-foreground/60">
-                Try selecting a different agent or import more data
-              </p>
-            </div>
-          </div>
-        ) : (
-          // Empty state - no agent selected
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-accent flex items-center justify-center">
-                <FileSpreadsheet className="w-8 h-8 text-accent" strokeWidth={2} />
-              </div>
-              <h2 className="text-lg font-semibold">Select an Agent</h2>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Choose a dataset and an agent to generate their quarterly EPro report
-              </p>
-            </div>
-          </div>
-        )}
-      </main>
+        {/* Report */}
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">{renderMain()}</main>
+      </div>
     </div>
   );
 }
 
 export default function EProPage() {
+  useLanguage();
   return (
-    <Suspense fallback={
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex h-full items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      }
+    >
       <EProPageContent />
     </Suspense>
   );

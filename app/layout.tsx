@@ -4,6 +4,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/components/ThemeProvider";
+import { LanguageProvider } from "@/components/LanguageProvider";
 import { UpdateChecker } from "@/components/UpdateChecker";
 
 const inter = Inter({
@@ -36,15 +37,17 @@ export default function RootLayout({
                 <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
             </head>
             <body className={`${inter.variable} ${ibmPlexMono.variable} bg-background text-foreground antialiased`}>
-                <ThemeProvider>
-                    <TooltipProvider>
-                        <div className="flex h-screen overflow-hidden">
-                            <Sidebar />
-                            <main className="flex-1 overflow-auto">{children}</main>
-                        </div>
-                    </TooltipProvider>
-                    <UpdateChecker />
-                </ThemeProvider>
+                <LanguageProvider>
+                    <ThemeProvider>
+                        <TooltipProvider>
+                            <div className="flex h-screen overflow-hidden">
+                                <Sidebar />
+                                <main className="flex-1 overflow-auto">{children}</main>
+                            </div>
+                        </TooltipProvider>
+                        <UpdateChecker />
+                    </ThemeProvider>
+                </LanguageProvider>
             </body>
         </html>
     );

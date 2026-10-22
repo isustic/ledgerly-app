@@ -1,5 +1,7 @@
 "use client";
 
+import { translate, translateMessage, setLanguage, getLocale } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useEffect, useState } from "react";
 import {
     Sun, Moon, Monitor,
@@ -74,6 +76,7 @@ interface Dataset {
 // UpdateSettings Component
 // ─────────────────────────────────────────────────────────────────────────────
 function UpdateSettings() {
+    useLanguage();
     const [checking, setChecking] = useState(false);
     const [status, setStatus] = useState<{ type: 'success' | 'info' | 'error'; message: string } | null>(null);
     const [update, setUpdate] = useState<UpdateInfo | null>(null);
@@ -103,8 +106,8 @@ function UpdateSettings() {
                         <Download className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                        <p className="text-sm font-medium">App Updates</p>
-                        <p className="text-[10px] text-muted-foreground">Check for new versions</p>
+                        <p className="text-sm font-medium">{translate("App Updates")}</p>
+                        <p className="text-[10px] text-muted-foreground">{translate("Check for new versions")}</p>
                     </div>
                 </div>
                 <Button
@@ -116,13 +119,11 @@ function UpdateSettings() {
                     {checking ? (
                         <span className="flex items-center gap-2">
                             <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                            Checking...
-                        </span>
+                            {translate("Checking...")}</span>
                     ) : (
                         <span className="flex items-center gap-1.5">
                             <Download size={14} />
-                            Check for Updates
-                        </span>
+                            {translate("Check for Updates")}</span>
                     )}
                 </Button>
             </div>
@@ -136,7 +137,7 @@ function UpdateSettings() {
                     {status.type === 'success' && <CheckCircle2 size={14} />}
                     {status.type === 'info' && <Info size={14} />}
                     {status.type === 'error' && <AlertTriangle size={14} />}
-                    <span>{status.message}</span>
+                    <span>{translateMessage(status.message)}</span>
                 </div>
             )}
             <UpdateDialog open={update !== null} update={update} onClose={() => setUpdate(null)} />
@@ -145,6 +146,7 @@ function UpdateSettings() {
 }
 
 export default function SettingsPage() {
+    const language = useLanguage();
     const { theme, setTheme } = useTheme();
     const [stats, setStats] = useState<UsageStats | null>(null);
     const [activity, setActivity] = useState<ActivityDay[]>([]);
@@ -204,8 +206,8 @@ export default function SettingsPage() {
     const handleDeleteDataset = async (datasetId: number, datasetName: string) => {
         // Confirm before deleting
         const confirmed = await safeConfirm(
-            `Are you sure you want to delete "${datasetName}"? This action cannot be undone.`,
-            "Delete Dataset"
+            translate("Are you sure you want to delete \"{0}\"? This action cannot be undone.", { 0: datasetName }),
+            translate("Delete Dataset")
         );
         if (!confirmed) return;
 
@@ -215,7 +217,7 @@ export default function SettingsPage() {
             setDatasets((prev) => prev.filter((d) => d.id !== datasetId));
         } catch (error) {
             console.error("Failed to delete dataset:", error);
-            alert("Failed to delete dataset. Please try again.");
+            alert(translate("Failed to delete dataset. Please try again."));
         } finally {
             setIsDeleting(null);
         }
@@ -223,8 +225,8 @@ export default function SettingsPage() {
 
     const handleClearAll = async () => {
         const confirmed = await safeConfirm(
-            "Are you sure you want to clear ALL data? This will delete every dataset, report, template, and query history. This action cannot be undone.",
-            "Clear All Data"
+            translate("Are you sure you want to clear ALL data? This will delete every dataset, report, template, and query history. This action cannot be undone."),
+            translate("Clear All Data")
         );
         if (!confirmed) return;
 
@@ -238,7 +240,7 @@ export default function SettingsPage() {
             setActivity([]);
         } catch (error) {
             console.error("Failed to clear database:", error);
-            alert("Failed to clear database. Please try again.");
+            alert(translate("Failed to clear database. Please try again."));
         } finally {
             setIsClearing(false);
         }
@@ -260,7 +262,7 @@ export default function SettingsPage() {
             );
         } catch (error) {
             console.error("Failed to rename dataset:", error);
-            alert("Failed to rename dataset. Please try again.");
+            alert(translate("Failed to rename dataset. Please try again."));
         } finally {
             setEditingDatasetId(null);
             setEditValue("");
@@ -290,7 +292,7 @@ export default function SettingsPage() {
 
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr);
-        return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        return date.toLocaleDateString(getLocale(), { month: "short", day: "numeric" });
     };
 
     // Build heatmap data (last 12 weeks)
@@ -328,8 +330,8 @@ export default function SettingsPage() {
                     <Sun className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                    <h1 className="text-sm font-semibold">Settings</h1>
-                    <p className="text-[10px] text-muted-foreground">Manage your preferences</p>
+                    <h1 className="text-sm font-semibold">{translate("Settings")}</h1>
+                    <p className="text-[10px] text-muted-foreground">{translate("Manage your preferences")}</p>
                 </div>
             </div>
 
@@ -340,7 +342,7 @@ export default function SettingsPage() {
                     <section className="space-y-5">
                         <div className="flex items-center gap-2">
                             <TrendingUp className="w-4 h-4 text-accent" />
-                            <h2 className="text-sm font-medium">Your analytics</h2>
+                            <h2 className="text-sm font-medium">{translate("Your analytics")}</h2>
                         </div>
 
                         {/* Stats Cards */}
@@ -349,23 +351,23 @@ export default function SettingsPage() {
                                 <div className="bg-card/50 border border-border/40 rounded-xl p-4">
                                     <div className="flex items-center gap-2 text-muted-foreground mb-2">
                                         <Database className="w-4 h-4" />
-                                        <span className="text-xs">Datasets</span>
+                                        <span className="text-xs">{translate("Datasets")}</span>
                                     </div>
                                     <p className="text-2xl font-semibold text-foreground">{stats.datasets_count}</p>
                                 </div>
                                 <div className="bg-card/50 border border-border/40 rounded-xl p-4">
                                     <div className="flex items-center gap-2 text-muted-foreground mb-2">
                                         <BarChart3 className="w-4 h-4" />
-                                        <span className="text-xs">Reports Run</span>
+                                        <span className="text-xs">{translate("Reports Run")}</span>
                                     </div>
                                     <p className="text-2xl font-semibold text-foreground">{stats.reports_run}</p>
                                 </div>
                                 <div className="bg-card/50 border border-border/40 rounded-xl p-4">
                                     <div className="flex items-center gap-2 text-muted-foreground mb-2">
                                         <Package className="w-4 h-4" />
-                                        <span className="text-xs">Total Rows</span>
+                                        <span className="text-xs">{translate("Total Rows")}</span>
                                     </div>
-                                    <p className="text-2xl font-semibold text-foreground">{stats.total_rows.toLocaleString()}</p>
+                                    <p className="text-2xl font-semibold text-foreground">{stats.total_rows.toLocaleString(getLocale())}</p>
                                 </div>
                             </div>
                         )}
@@ -373,16 +375,16 @@ export default function SettingsPage() {
                         {/* Activity Heatmap */}
                         <div className="bg-card/30 border border-border/40 rounded-xl p-4">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-xs font-medium text-muted-foreground">Activity</h3>
+                                <h3 className="text-xs font-medium text-muted-foreground">{translate("Activity")}</h3>
                                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                                    <span>Less</span>
+                                    <span>{translate("Less")}</span>
                                     <div className="flex gap-0.5">
                                         <div className="w-3 h-3 rounded-sm bg-muted/30" />
                                         <div className="w-3 h-3 rounded-sm bg-accent/30" />
                                         <div className="w-3 h-3 rounded-sm bg-accent/60" />
                                         <div className="w-3 h-3 rounded-sm bg-accent" />
                                     </div>
-                                    <span>More</span>
+                                    <span>{translate("More")}</span>
                                 </div>
                             </div>
                             <div className="flex gap-1">
@@ -395,7 +397,7 @@ export default function SettingsPage() {
                                                     "w-3 h-3 rounded-sm transition-all hover:ring-1 hover:ring-accent/50",
                                                     getActivityLevel(day.count)
                                                 )}
-                                                title={`${day.date}: ${day.count} actions`}
+                                                title={translate("{0}: {1} actions", { 0: day.date, 1: day.count })}
                                             />
                                         ))}
                                     </div>
@@ -406,7 +408,7 @@ export default function SettingsPage() {
                         {/* Most Used Columns */}
                         {stats && stats.most_used_columns.length > 0 && (
                             <div className="bg-card/30 border border-border/40 rounded-xl p-4">
-                                <h3 className="text-xs font-medium text-muted-foreground mb-3">Most Used Columns</h3>
+                                <h3 className="text-xs font-medium text-muted-foreground mb-3">{translate("Most Used Columns")}</h3>
                                 <div className="flex flex-wrap gap-2">
                                     {stats.most_used_columns.map((col) => (
                                         <div
@@ -426,7 +428,7 @@ export default function SettingsPage() {
                     <section className="space-y-4">
                         <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-accent" />
-                            <h2 className="text-sm font-medium">Recent reports</h2>
+                            <h2 className="text-sm font-medium">{translate("Recent reports")}</h2>
                         </div>
 
                         <div className="bg-card/30 border border-border/40 rounded-xl p-4">
@@ -437,13 +439,13 @@ export default function SettingsPage() {
                                     </div>
                                     <div>
                                         <p className="text-2xl font-semibold text-foreground">{queryHistory.length}</p>
-                                        <p className="text-xs text-muted-foreground">reports run</p>
+                                        <p className="text-xs text-muted-foreground">{translate("reports run")}</p>
                                     </div>
                                 </div>
                                 {queryHistory.length > 0 && (
                                     <div className="text-right">
                                         <p className="text-xs text-muted-foreground">
-                                            Latest: {formatDate(queryHistory[0].timestamp)}
+                                            {translate("Latest:")}{" "}{formatDate(queryHistory[0].timestamp)}
                                         </p>
                                     </div>
                                 )}
@@ -456,9 +458,9 @@ export default function SettingsPage() {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <FileSpreadsheet className="w-4 h-4 text-accent" />
-                                <h2 className="text-sm font-medium">Datasets</h2>
+                                <h2 className="text-sm font-medium">{translate("Datasets")}</h2>
                             </div>
-                            <span className="text-xs text-muted-foreground">{datasets.length} imported</span>
+                            <span className="text-xs text-muted-foreground">{translate("{count} imported", { count: datasets.length })}</span>
                         </div>
 
                         {datasets.length > 0 ? (
@@ -511,7 +513,7 @@ export default function SettingsPage() {
                                                             {dataset.name}
                                                         </button>
                                                         <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                                                            <span>{dataset.row_count.toLocaleString()} rows</span>
+                                                            <span>{dataset.row_count.toLocaleString(getLocale())} {" "}{translate("rows")}</span>
                                                             <span>·</span>
                                                             <span className="truncate">{dataset.file_origin}</span>
                                                             <span>·</span>
@@ -532,13 +534,11 @@ export default function SettingsPage() {
                                                 {isDeleting === dataset.id ? (
                                                     <span className="flex items-center gap-1.5">
                                                         <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                                                        Deleting...
-                                                    </span>
+                                                        {translate("Deleting...")}</span>
                                                 ) : (
                                                     <span className="flex items-center gap-1.5">
                                                         <Trash2 size={14} />
-                                                        Delete
-                                                    </span>
+                                                        {translate("Delete")}</span>
                                                 )}
                                             </Button>
                                         )}
@@ -548,8 +548,8 @@ export default function SettingsPage() {
                         ) : (
                             <div className="bg-card/30 border border-border/40 rounded-xl p-8 text-center">
                                 <FileSpreadsheet className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
-                                <p className="text-sm text-muted-foreground">No datasets yet</p>
-                                <p className="text-xs text-muted-foreground/60">Import Excel files from the Data Explorer</p>
+                                <p className="text-sm text-muted-foreground">{translate("No datasets yet")}</p>
+                                <p className="text-xs text-muted-foreground/60">{translate("Import Excel files from the Data Explorer")}</p>
                             </div>
                         )}
 
@@ -566,13 +566,11 @@ export default function SettingsPage() {
                                     {isClearing ? (
                                         <span className="flex items-center gap-1.5">
                                             <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                                            Clearing...
-                                        </span>
+                                            {translate("Clearing...")}</span>
                                     ) : (
                                         <span className="flex items-center gap-1.5">
                                             <AlertTriangle size={14} />
-                                            Clear All Data
-                                        </span>
+                                            {translate("Clear All Data")}</span>
                                     )}
                                 </Button>
                             </div>
@@ -581,7 +579,7 @@ export default function SettingsPage() {
                     <section className="space-y-4">
                         <div className="flex items-center gap-2">
                             <Star className="w-4 h-4 text-accent" />
-                            <h2 className="text-sm font-medium">Favorites</h2>
+                            <h2 className="text-sm font-medium">{translate("Favorites")}</h2>
                         </div>
 
                         {favorites.length > 0 ? (
@@ -598,7 +596,7 @@ export default function SettingsPage() {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium">{fav.name}</p>
-                                                <p className="text-[10px] text-muted-foreground capitalize">{fav.item_type}</p>
+                                                <p className="text-[10px] text-muted-foreground capitalize">{translate(fav.item_type)}</p>
                                             </div>
                                         </div>
                                         <button
@@ -613,8 +611,8 @@ export default function SettingsPage() {
                         ) : (
                             <div className="bg-card/30 border border-border/40 rounded-xl p-8 text-center">
                                 <Star className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
-                                <p className="text-sm text-muted-foreground">No favorites yet</p>
-                                <p className="text-xs text-muted-foreground/60">Star datasets or reports to quick access them</p>
+                                <p className="text-sm text-muted-foreground">{translate("No favorites yet")}</p>
+                                <p className="text-xs text-muted-foreground/60">{translate("Star datasets or reports to quick access them")}</p>
                             </div>
                         )}
                     </section>
@@ -623,7 +621,7 @@ export default function SettingsPage() {
                     <section className="space-y-4">
                         <div className="flex items-center gap-2">
                             <GitCompare className="w-4 h-4 text-accent" />
-                            <h2 className="text-sm font-medium">Analysis</h2>
+                            <h2 className="text-sm font-medium">{translate("Analysis")}</h2>
                         </div>
 
                         <div className="bg-card/30 border border-border/40 rounded-xl divide-y divide-border/40">
@@ -631,8 +629,8 @@ export default function SettingsPage() {
                             <div className="px-4 py-3">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-medium">Default Aggregation</p>
-                                        <p className="text-[10px] text-muted-foreground">Default aggregation for numeric values in pivots</p>
+                                        <p className="text-sm font-medium">{translate("Default Aggregation")}</p>
+                                        <p className="text-[10px] text-muted-foreground">{translate("Default aggregation for numeric values in pivots")}</p>
                                     </div>
                                     <Select
                                         value={settings.defaultAggregation || "SUM"}
@@ -642,9 +640,9 @@ export default function SettingsPage() {
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="SUM">Sum</SelectItem>
-                                            <SelectItem value="AVG">Average</SelectItem>
-                                            <SelectItem value="COUNT">Count</SelectItem>
+                                            <SelectItem value="SUM">{translate("Sum")}</SelectItem>
+                                            <SelectItem value="AVG">{translate("Average")}</SelectItem>
+                                            <SelectItem value="COUNT">{translate("Count")}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -654,8 +652,8 @@ export default function SettingsPage() {
                             <div className="px-4 py-3">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-medium">Show Grand Totals</p>
-                                        <p className="text-[10px] text-muted-foreground">Display row and column totals in pivots</p>
+                                        <p className="text-sm font-medium">{translate("Show Grand Totals")}</p>
+                                        <p className="text-[10px] text-muted-foreground">{translate("Display row and column totals in pivots")}</p>
                                     </div>
                                     <button
                                         onClick={() => updateSetting("showPivotTotals", !settings.showPivotTotals)}
@@ -672,8 +670,8 @@ export default function SettingsPage() {
                             <div className="px-4 py-3">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-medium">Max Preview Rows</p>
-                                        <p className="text-[10px] text-muted-foreground">Maximum rows to display in results</p>
+                                        <p className="text-sm font-medium">{translate("Max Preview Rows")}</p>
+                                        <p className="text-[10px] text-muted-foreground">{translate("Maximum rows to display in results")}</p>
                                     </div>
                                     <Select
                                         value={String(settings.maxPreviewRows || "1000")}
@@ -685,8 +683,8 @@ export default function SettingsPage() {
                                         <SelectContent>
                                             <SelectItem value="100">100</SelectItem>
                                             <SelectItem value="500">500</SelectItem>
-                                            <SelectItem value="1000">1,000</SelectItem>
-                                            <SelectItem value="5000">5,000</SelectItem>
+                                            <SelectItem value="1000">{(1000).toLocaleString(getLocale())}</SelectItem>
+                                            <SelectItem value="5000">{(5000).toLocaleString(getLocale())}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -696,8 +694,8 @@ export default function SettingsPage() {
                             <div className="px-4 py-3">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-medium">Cache Results</p>
-                                        <p className="text-[10px] text-muted-foreground">Store query results for faster re-runs</p>
+                                        <p className="text-sm font-medium">{translate("Cache Results")}</p>
+                                        <p className="text-[10px] text-muted-foreground">{translate("Store query results for faster re-runs")}</p>
                                     </div>
                                     <button
                                         onClick={() => updateSetting("cacheResults", !settings.cacheResults)}
@@ -716,7 +714,7 @@ export default function SettingsPage() {
                     <section className="space-y-4">
                         <div className="flex items-center gap-2">
                             <Download className="w-4 h-4 text-accent" />
-                            <h2 className="text-sm font-medium">App Updates</h2>
+                            <h2 className="text-sm font-medium">{translate("App Updates")}</h2>
                         </div>
                         <UpdateSettings />
                     </section>
@@ -725,13 +723,12 @@ export default function SettingsPage() {
                     <section className="space-y-4 pt-6 border-t border-destructive/20">
                         <div className="flex items-center gap-2">
                             <AlertTriangle className="w-4 h-4 text-destructive" />
-                            <h2 className="text-sm font-medium text-destructive">Danger Zone</h2>
+                            <h2 className="text-sm font-medium text-destructive">{translate("Danger Zone")}</h2>
                         </div>
 
                         <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 space-y-4">
                             <p className="text-xs text-muted-foreground">
-                                Permanently delete all data. This includes every dataset, report template, query history, and favorite. Subgroup data is preserved.
-                            </p>
+                                {translate("Permanently delete all data. This includes every dataset, report template, query history, and favorite. Subgroup data is preserved.")}</p>
                             <Button
                                 onClick={handleClearAll}
                                 disabled={isClearing}
@@ -741,15 +738,31 @@ export default function SettingsPage() {
                                 {isClearing ? (
                                     <span className="flex items-center gap-1.5">
                                         <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                                        Clearing...
-                                    </span>
+                                        {translate("Clearing...")}</span>
                                 ) : (
                                     <span className="flex items-center gap-1.5">
                                         <Trash2 size={14} />
-                                        Clear All Data
-                                    </span>
+                                        {translate("Clear All Data")}</span>
                                 )}
                             </Button>
+                        </div>
+                    </section>
+
+                    <section className="space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border/40 bg-card/30 p-4">
+                            <div className="space-y-1">
+                                <label id="language-label" className="text-sm font-medium">{translate("Language")}</label>
+                                <p id="language-description" className="text-xs text-muted-foreground">{translate("Choose the language used throughout Ledgerly.")}</p>
+                            </div>
+                            <Select value={language} onValueChange={(value) => setLanguage(value as "en" | "ro")}>
+                                <SelectTrigger aria-labelledby="language-label" aria-describedby="language-description" className="w-40">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="en"><span lang="en">English</span></SelectItem>
+                                    <SelectItem value="ro"><span lang="ro">Română</span></SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </section>
 
@@ -757,9 +770,8 @@ export default function SettingsPage() {
                     <section className="space-y-3">
                         <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                             <Sun className="w-3 h-3" />
-                            Appearance
-                        </h2>
-                        <div role="radiogroup" aria-label="Theme" className="inline-flex rounded-lg border border-border bg-muted/50 p-1">
+                            {translate("Appearance")}</h2>
+                        <div role="radiogroup" aria-label={translate("Theme")} className="inline-flex rounded-lg border border-border bg-muted/50 p-1">
                             {THEME_OPTIONS.map(({ value, label, icon: Icon }) => {
                                 const active = theme === value;
                                 return (
@@ -777,7 +789,7 @@ export default function SettingsPage() {
                                         )}
                                     >
                                         <Icon size={14} />
-                                        {label}
+                                        {translate(label)}
                                     </button>
                                 );
                             })}
@@ -786,11 +798,11 @@ export default function SettingsPage() {
 
                     {/* ── About ── */}
                     <section className="space-y-3 pt-4 border-t border-border/50">
-                        <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">About</h2>
+                        <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{translate("About")}</h2>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             <span>Ledgerly</span>
                             <span className="w-px h-3 bg-border/50" />
-                            <span className="font-data">Version {appVersion}</span>
+                            <span className="font-data">{translate("Version")}{" "}{appVersion}</span>
                         </div>
                     </section>
                 </div>

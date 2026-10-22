@@ -1,5 +1,7 @@
 "use client";
 
+import { translate } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useEffect, useState } from "react";
 import { safeInvoke } from "@/lib/tauri";
 import {
@@ -46,6 +48,7 @@ export function TyReportRowModal({
   row,
   columns,
 }: TyReportRowModalProps) {
+    useLanguage();
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
@@ -93,7 +96,7 @@ export function TyReportRowModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="w-4 h-4" />
-            Edit row #{row?._row_id}
+            {translate("Edit row #")}{row?._row_id}
           </DialogTitle>
         </DialogHeader>
 
@@ -127,8 +130,7 @@ export function TyReportRowModal({
             disabled={isSaving}
           >
             <Trash2 className="w-4 h-4 mr-1" />
-            Delete
-          </Button>
+            {translate("Delete")}</Button>
           <div className="flex-1" />
           <Button
             type="button"
@@ -137,12 +139,10 @@ export function TyReportRowModal({
             disabled={isSaving}
           >
             <X className="w-4 h-4 mr-1" />
-            Cancel
-          </Button>
+            {translate("Cancel")}</Button>
           <Button type="button" onClick={handleSave} disabled={isSaving}>
             {isSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
-            Save
-          </Button>
+            {translate("Save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

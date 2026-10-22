@@ -1,5 +1,7 @@
 "use client";
 
+import { translate } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -20,6 +22,7 @@ interface DeleteDialogProps {
 }
 
 export function DeleteDialog({ open, onClose, onConfirm, cod }: DeleteDialogProps) {
+    useLanguage();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -39,14 +42,12 @@ export function DeleteDialog({ open, onClose, onConfirm, cod }: DeleteDialogProp
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <TriangleAlert className="w-5 h-5 text-destructive" />
-            Delete subgroup
-          </DialogTitle>
+            {translate("Delete subgroup")}</DialogTitle>
         </DialogHeader>
 
         <div className="py-4">
           <p className="text-sm text-muted-foreground">
-            Are you sure you want to delete <strong>&apos;{cod}&apos;</strong>? This action cannot be undone.
-          </p>
+            {translate("Are you sure you want to delete")}{" "}<strong>&apos;{cod}&apos;</strong>{translate("? This action cannot be undone.")}</p>
         </div>
 
         <DialogFooter className="gap-2">
@@ -57,8 +58,7 @@ export function DeleteDialog({ open, onClose, onConfirm, cod }: DeleteDialogProp
             disabled={isDeleting}
           >
             <X className="w-4 h-4 mr-1" />
-            Cancel
-          </Button>
+            {translate("Cancel")}</Button>
           <Button
             type="button"
             variant="destructive"
@@ -66,8 +66,7 @@ export function DeleteDialog({ open, onClose, onConfirm, cod }: DeleteDialogProp
             disabled={isDeleting}
           >
             {isDeleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
-            Delete
-          </Button>
+            {translate("Delete")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

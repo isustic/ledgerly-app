@@ -1,5 +1,7 @@
 "use client";
 
+import { translate } from "@/lib/i18n";
+import { useLanguage } from "@/components/LanguageProvider";
 import { useState } from "react";
 
 interface FormulaTemplate {
@@ -205,6 +207,7 @@ interface FormulaTemplatesProps {
 }
 
 export function FormulaTemplates({ onSelect }: FormulaTemplatesProps) {
+    useLanguage();
     const [selectedCategory, setSelectedCategory] = useState<string>("Metrics");
 
     const filteredTemplates = selectedCategory
@@ -212,10 +215,9 @@ export function FormulaTemplates({ onSelect }: FormulaTemplatesProps) {
         : templates;
 
     return (
-        <div className="bg-card/30 border border-border/40 rounded-xl p-3">
-            <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
-                Quick Templates
-            </h4>
+        <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+            <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {translate("Quick Templates")}</h4>
 
             {/* Category Tabs */}
             <div className="flex flex-wrap gap-1 mb-3">
@@ -229,7 +231,7 @@ export function FormulaTemplates({ onSelect }: FormulaTemplatesProps) {
                                 : "bg-muted/50 text-muted-foreground hover:bg-muted/70"
                         }`}
                     >
-                        {categoryIcons[category]}{category}
+                        {categoryIcons[category]}{translate(category)}
                     </button>
                 ))}
             </div>
@@ -241,10 +243,10 @@ export function FormulaTemplates({ onSelect }: FormulaTemplatesProps) {
                         key={template.id}
                         onClick={() => onSelect(template.formula)}
                         className="p-2 bg-background/50 rounded hover:bg-primary/10 transition-colors text-left group"
-                        title={template.description}
+                        title={translate(template.description)}
                     >
                         <p className="text-xs font-medium group-hover:text-primary transition-colors">
-                            {template.name}
+                            {translate(template.name)}
                         </p>
                         <p className="text-[10px] text-muted-foreground font-mono truncate">
                             {template.formula}
