@@ -53,7 +53,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
+          cache: npm
 
       - name: Rust setup
         uses: dtolnay/rust-toolchain@stable
@@ -70,13 +71,18 @@ jobs:
         run: npm ci
 
       - name: Build Tauri app
+        if: >-
+          github.event_name != 'workflow_dispatch' ||
+          (matrix.platform == 'windows' && inputs.build_windows) ||
+          (matrix.platform == 'macos' && inputs.build_macos) ||
+          (matrix.platform == 'linux' && inputs.build_linux)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
+          tagName: v__VERSION__
           releaseName: "Ledgerly v__VERSION__"
           releaseBody: "See the assets to download and install this version."
           releaseDraft: false
