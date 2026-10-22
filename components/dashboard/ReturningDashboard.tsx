@@ -96,10 +96,10 @@ export function ReturningDashboard({ datasets }: ReturningDashboardProps) {
 
     const statCards = stats
         ? [
-              { label: translate("Datasets"), value: stats.datasets_count.toLocaleString(getLocale()), icon: Database, tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-              { label: translate("Total rows"), value: stats.total_rows.toLocaleString(getLocale()), icon: Table2, tone: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
-              { label: translate("Reports run"), value: stats.reports_run.toLocaleString(getLocale()), icon: BarChart3, tone: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
-              { label: translate("Last activity"), value: lastDataset ? formatDate(lastDataset.created_at) : "—", icon: Clock, tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+              { label: translate("Datasets"), value: stats.datasets_count.toLocaleString(getLocale()), wrapValue: false, icon: Database, tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+              { label: translate("Total rows"), value: stats.total_rows.toLocaleString(getLocale()), wrapValue: false, icon: Table2, tone: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
+              { label: translate("Reports run"), value: stats.reports_run.toLocaleString(getLocale()), wrapValue: false, icon: BarChart3, tone: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
+              { label: translate("Last activity"), value: lastDataset ? formatDate(lastDataset.created_at) : "—", wrapValue: true, icon: Clock, tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
           ]
         : [];
 
@@ -205,7 +205,7 @@ export function ReturningDashboard({ datasets }: ReturningDashboardProps) {
                                         <stat.icon className="h-5 w-5" />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="font-data truncate text-xl font-bold">{stat.value}</p>
+                                        <p className={cn("font-data text-xl font-bold", stat.wrapValue ? "whitespace-normal break-words text-base leading-tight" : "truncate")}>{stat.value}</p>
                                         <p className="text-xs text-muted-foreground">{translate(stat.label)}</p>
                                     </div>
                                 </CardContent>
