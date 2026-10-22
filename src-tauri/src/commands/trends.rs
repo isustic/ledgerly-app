@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Manager};
 use tauri::State;
 use crate::db::DbState;
 use crate::db::schema::sanitize_col_name;
@@ -28,7 +29,17 @@ pub struct TrendMetrics {
 }
 
 #[tauri::command]
-pub fn run_trends_query(
+pub async fn run_trends_query(
+    dataset_id: i64,
+    config: TrendsConfig,
+    app: AppHandle,
+) -> Result<TrendsResult, String> {
+    tauri::async_runtime::spawn_blocking(move || run_trends_query_sync(dataset_id, config, app.state::<DbState>()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn run_trends_query_sync(
     dataset_id: i64,
     config: TrendsConfig,
     state: State<DbState>,

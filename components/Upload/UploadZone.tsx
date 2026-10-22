@@ -125,7 +125,7 @@ export function UploadZone({ onSuccess, compact = false }: UploadZoneProps) {
                 className={cn(
                     "relative overflow-hidden rounded-xl border-2 p-8 transition-all duration-300",
                     isDragging
-                        ? "border-primary bg-primary/10 glow-forest"
+                        ? "border-primary bg-primary/10"
                         : "border-border/40 hover:border-border bg-muted/20",
                     isIngesting && "pointer-events-none opacity-60"
                 )}

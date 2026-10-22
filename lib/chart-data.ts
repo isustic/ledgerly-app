@@ -1,5 +1,11 @@
 import type { ChartType } from "@/types/report";
 
+// Green-led series palette; matches the --chart-* tokens in app/globals.css.
+export const SERIES_COLORS = [
+  "#1f7a5c", "#2563eb", "#d97706", "#0f766e",
+  "#64748b", "#9333ea", "#dc2626", "#0891b2",
+];
+
 export interface ChartDataPoint {
   name: string;
   value: number;
@@ -79,16 +85,7 @@ export function transformDataForChart(
   });
 
   // Define series with colors
-  const colors = [
-    "#3b82f6", // blue
-    "#10b981", // emerald
-    "#f59e0b", // amber
-    "#ef4444", // red
-    "#8b5cf6", // violet
-    "#ec4899", // pink
-    "#06b6d4", // cyan
-    "#f97316", // orange
-  ];
+  const colors = SERIES_COLORS;
 
   const series = seriesKeys.map((key, index) => ({
     key,

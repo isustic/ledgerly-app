@@ -7,7 +7,7 @@ use chrono::{Datelike, NaiveDate, Utc};
 use rusqlite::{params, types::Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_dialog::DialogExt;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -374,7 +374,19 @@ pub fn get_ty_report_columns(
 }
 
 #[tauri::command]
-pub fn get_ty_report_rows(
+pub async fn get_ty_report_rows(
+    report_id: i64,
+    page: i64,
+    page_size: i64,
+    search: Option<String>,
+    app: AppHandle,
+) -> Result<PagedRows, String> {
+    tauri::async_runtime::spawn_blocking(move || get_ty_report_rows_sync(report_id, page, page_size, search, app.state::<DbState>()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn get_ty_report_rows_sync(
     report_id: i64,
     page: i64,
     page_size: i64,

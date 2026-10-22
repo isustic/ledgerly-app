@@ -52,7 +52,7 @@ function UploadPageContent() {
     return (
         <div className="flex flex-col h-full bg-background/50 mesh-bg">
             {/* Header */}
-            <div className="h-14 px-6 flex items-center justify-between gap-4 border-b border-border/50 bg-card/30 backdrop-blur-sm">
+            <div className="h-14 px-6 flex items-center justify-between gap-4 border-b border-border/50 bg-card">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                         <Database className="w-4 h-4 text-primary" />
@@ -127,8 +127,8 @@ function UploadPageContent() {
 export default function UploadPage() {
     return (
         <Suspense fallback={
-            <div className="flex h-full items-center justify-center">
-                <div className="animate-pulse text-muted-foreground">Loading...</div>
+            <div className="p-8" aria-busy="true" aria-label="Loading">
+                <div className="h-8 w-48 rounded-md bg-muted" />
             </div>
         }>
             <UploadPageContent />

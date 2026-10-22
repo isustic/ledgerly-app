@@ -47,18 +47,27 @@ export function useResizableSidebar({
   useEffect(() => {
     if (!isDragging) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      // Note: Using e.clientX directly works because sidebar is at left edge of viewport
-      const newWidth = e.clientX;
-      const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+    // Coalesce pointer moves to one state update per frame so a drag doesn't re-render the page on every pixel.
+    let frame = 0;
+    let pendingX: number | null = null;
+    const applyPending = () => {
+      frame = 0;
+      if (pendingX === null) return;
+      const clampedWidth = Math.max(minWidth, Math.min(maxWidth, pendingX));
+      pendingX = null;
       setSidebarWidth(clampedWidth);
     };
+    const schedule = (x: number) => {
+      pendingX = x;
+      if (!frame) frame = requestAnimationFrame(applyPending);
+    };
+
+    // Note: Using clientX directly works because sidebar is at left edge of viewport
+    const handleMouseMove = (e: MouseEvent) => schedule(e.clientX);
 
     const handleTouchMove = (e: TouchEvent) => {
       const touch = e.touches[0];
-      const newWidth = touch.clientX;
-      const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-      setSidebarWidth(clampedWidth);
+      schedule(touch.clientX);
     };
 
     const handleMouseUp = () => {
@@ -75,6 +84,7 @@ export function useResizableSidebar({
     window.addEventListener('touchend', handleTouchEnd);
 
     return () => {
+      if (frame) cancelAnimationFrame(frame);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('touchmove', handleTouchMove);

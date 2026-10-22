@@ -178,7 +178,7 @@ function EProPageContent() {
   return (
     <div className="flex h-full bg-background/50">
       {/* LEFT PANEL - Agent Selection & Export */}
-      <aside className="w-80 shrink-0 border-r border-border/50 bg-card/30 backdrop-blur-sm flex flex-col overflow-hidden">
+      <aside className="w-80 shrink-0 border-r border-border/50 bg-card flex flex-col overflow-hidden">
         {/* Header */}
         <div className="px-4 pt-4 pb-3 border-b border-border/50 space-y-3">
           <div>
@@ -342,7 +342,7 @@ function EProPageContent() {
           // Empty state - no agent selected
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-accent/20 to-[#D4B896]/20 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-accent flex items-center justify-center">
                 <FileSpreadsheet className="w-8 h-8 text-accent" strokeWidth={2} />
               </div>
               <h2 className="text-lg font-semibold">Select an Agent</h2>

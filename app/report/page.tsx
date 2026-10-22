@@ -720,7 +720,7 @@ function ReportPageContent() {
     <div className="flex h-full bg-background/50">
       {/* LEFT SIDEBAR */}
       <aside
-        className="group shrink-0 border-r border-border/50 bg-card/30 backdrop-blur-sm flex flex-col overflow-hidden"
+        className="group shrink-0 border-r border-border/50 bg-card flex flex-col overflow-hidden"
         style={{ width: `${sidebarWidth}px` }}
       >
         {/* Header */}

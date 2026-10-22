@@ -202,7 +202,7 @@ export function DataTable({ datasetId, datasetName, rowCount, uploadZone }: Data
             <div className="flex-1 overflow-auto">
                 <table className="w-full text-xs border-collapse">
                     <thead className="sticky top-0 z-10">
-                        <tr className="bg-card/80 backdrop-blur-sm border-b border-border/50">
+                        <tr className="bg-card/80 border-b border-border/50">
                             <th className="w-8 px-2 py-2 text-center text-[10px] text-muted-foreground font-medium border-r border-border/30">
                                 #
                             </th>
@@ -287,7 +287,7 @@ export function DataTable({ datasetId, datasetName, rowCount, uploadZone }: Data
             </div>
 
             {/* Pagination */}
-            <div className="h-10 px-4 flex items-center justify-between gap-4 border-t border-border/50 bg-card/30 backdrop-blur-sm">
+            <div className="h-10 px-4 flex items-center justify-between gap-4 border-t border-border/50 bg-card">
                 <span className="text-[10px] text-muted-foreground font-data">
                     {filteredRows.length > 0
                         ? `${displayStart.toLocaleString()}-${displayEnd.toLocaleString()} of ${(searchTotal > 0 ? searchTotal : total).toLocaleString()} rows`

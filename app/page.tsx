@@ -36,8 +36,13 @@ export default function HomePage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-pulse text-muted-foreground">Loading...</div>
+            <div className="mx-auto max-w-5xl space-y-4 p-8" aria-busy="true" aria-label="Loading">
+                <div className="h-8 w-48 rounded-md bg-muted" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {Array.from({ length: 4 }, (_, i) => (
+                        <div key={i} className="h-24 rounded-lg border border-border bg-muted/50" />
+                    ))}
+                </div>
             </div>
         );
     }

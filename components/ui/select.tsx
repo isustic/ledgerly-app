@@ -40,13 +40,13 @@ function SelectTrigger({
         // Base styles
         "flex items-center justify-between gap-2 whitespace-nowrap",
         // Eco theme styling
-        "bg-card border-border/60 text-foreground",
+        "bg-card border-border text-foreground",
         "hover:border-primary/50",
-        "focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/20",
+        "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        "transition-all duration-200",
+        "transition-colors duration-150",
         // Size variants
-        size === "pill" && "rounded-full px-4 py-2 text-sm shadow-sm",
+        size === "pill" && "rounded-full px-4 py-2 text-sm",
         size === "sm" && "rounded-md px-3 py-1.5 text-xs",
         size === "default" && "rounded-md px-3 py-2 text-sm",
         // Icon handling
@@ -79,7 +79,7 @@ function SelectContent({
           // Base styles
           "relative z-50 min-w-[8rem] max-h-80 overflow-hidden rounded-xl",
           // Solid background - no transparency
-          "bg-background border border-border shadow-xl",
+          "bg-background border border-border shadow-sm",
           "text-foreground",
           // Animation
           "data-[state=open]:animate-in data-[state=closed]:animate-out",

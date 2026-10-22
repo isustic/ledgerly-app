@@ -14,7 +14,7 @@ export async function exportChartAsImage(
       height,
       quality: 1.0,
       pixelRatio: 2, // Higher quality for retina displays
-      backgroundColor: '#ffffff',
+      backgroundColor: document.documentElement.classList.contains('dark') ? '#0b0f0d' : '#ffffff',
     });
 
     // Remove the data URL prefix to get just the base64 data

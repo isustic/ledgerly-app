@@ -141,7 +141,7 @@ export default function ClientsPage() {
 
   return (
     <div className="flex h-full bg-background/50">
-      <aside className="w-80 shrink-0 border-r border-border/50 bg-card/30 backdrop-blur-sm flex flex-col overflow-hidden">
+      <aside className="w-80 shrink-0 border-r border-border/50 bg-card flex flex-col overflow-hidden">
         <div className="px-4 pt-4 pb-2 border-b border-border/50">
           <h1 className="text-sm font-semibold flex items-center gap-2">
             <Users className="w-4 h-4 text-primary" />

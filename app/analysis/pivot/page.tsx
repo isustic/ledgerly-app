@@ -91,7 +91,7 @@ export default function PivotPage() {
     return (
         <div className="flex flex-col h-full bg-background/50 mesh-bg">
             {/* Compact Header */}
-            <div className="h-12 px-4 flex items-center gap-3 border-b border-border/50 bg-card/30 backdrop-blur-sm shrink-0">
+            <div className="h-12 px-4 flex items-center gap-3 border-b border-border/50 bg-card shrink-0">
                 <Link href="/analysis">
                     <Button variant="ghost" size="icon" className="h-7 w-7">
                         <ArrowLeft className="h-3.5 w-3.5" />

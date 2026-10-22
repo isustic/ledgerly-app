@@ -542,7 +542,7 @@ export function EppReportTable({ rows, agentName, year, showQualifiedOnly, onQua
             {table.getHeaderGroups().map((hg) => (
               <tr
                 key={hg.id}
-                className="bg-card/80 backdrop-blur-sm border-b border-border/50"
+                className="bg-card/80 border-b border-border/50"
               >
                 {hg.headers.map((h) => (
                   <th

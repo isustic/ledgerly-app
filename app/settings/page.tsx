@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-    Sun, Moon,
+    Sun, Moon, Monitor,
     Database, BarChart3, TrendingUp, Clock, Star,
     Trash2, Package, AlertTriangle, FileSpreadsheet,
     GitCompare, Download, CheckCircle2, Info
@@ -21,6 +21,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+
+const THEME_OPTIONS = [
+    { value: "system", label: "System", icon: Monitor },
+    { value: "light", label: "Light", icon: Sun },
+    { value: "dark", label: "Dark", icon: Moon },
+] as const;
 
 // Analytics types
 interface UsageStats {
@@ -317,7 +323,7 @@ export default function SettingsPage() {
     return (
         <div className="flex flex-col h-full bg-background/50 mesh-bg">
             {/* Header */}
-            <div className="h-14 px-6 flex items-center gap-3 border-b border-border/50 bg-card/30 backdrop-blur-sm">
+            <div className="h-14 px-6 flex items-center gap-3 border-b border-border/50 bg-card">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
                     <Sun className="w-4 h-4 text-primary" />
                 </div>
@@ -753,31 +759,28 @@ export default function SettingsPage() {
                             <Sun className="w-3 h-3" />
                             Appearance
                         </h2>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setTheme("light")}
-                                className={cn(
-                                    "flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm transition-all",
-                                    theme === "light"
-                                        ? "border-primary bg-primary/10 text-primary glow-forest"
-                                        : "border-border/50 text-muted-foreground hover:border-border hover:bg-muted/40"
-                                )}
-                            >
-                                <Sun size={14} />
-                                Light
-                            </button>
-                            <button
-                                onClick={() => setTheme("dark")}
-                                className={cn(
-                                    "flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm transition-all",
-                                    theme === "dark"
-                                        ? "border-primary bg-primary/10 text-primary glow-forest"
-                                        : "border-border/50 text-muted-foreground hover:border-border hover:bg-muted/40"
-                                )}
-                            >
-                                <Moon size={14} />
-                                Dark
-                            </button>
+                        <div role="radiogroup" aria-label="Theme" className="inline-flex rounded-lg border border-border bg-muted/50 p-1">
+                            {THEME_OPTIONS.map(({ value, label, icon: Icon }) => {
+                                const active = theme === value;
+                                return (
+                                    <button
+                                        key={value}
+                                        type="button"
+                                        role="radio"
+                                        aria-checked={active}
+                                        onClick={() => setTheme(value)}
+                                        className={cn(
+                                            "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                            active
+                                                ? "bg-card text-foreground shadow-sm"
+                                                : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        <Icon size={14} />
+                                        {label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </section>
 

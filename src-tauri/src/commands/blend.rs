@@ -10,6 +10,7 @@
 //! before being used in SQL queries to prevent injection.
 
 use crate::db::{DbState, schema::sanitize_col_name};
+use tauri::{AppHandle, Manager};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
@@ -87,7 +88,16 @@ pub struct BlendRow {
 
 /// Executes a blend query to join multiple datasets.
 #[tauri::command]
-pub fn run_blend_query(
+pub async fn run_blend_query(
+    config: BlendConfig,
+    app: AppHandle,
+) -> Result<BlendResult, String> {
+    tauri::async_runtime::spawn_blocking(move || run_blend_query_sync(config, app.state::<DbState>()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn run_blend_query_sync(
     config: BlendConfig,
     db: State<'_, DbState>,
 ) -> Result<BlendResult, String> {

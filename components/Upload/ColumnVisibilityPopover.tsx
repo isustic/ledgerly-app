@@ -94,7 +94,7 @@ export function ColumnVisibilityPopover({
 
             {/* Popover */}
             {isOpen && (
-                <div className="absolute right-0 top-full mt-1 w-72 bg-card/95 backdrop-blur-sm border border-border/50 rounded-lg shadow-lg z-50 animate-fade-in">
+                <div className="absolute right-0 top-full mt-1 w-72 bg-card border border-border/50 rounded-lg shadow-lg z-50 animate-fade-in">
                     {/* Header with search */}
                     <div className="p-3 border-b border-border/50">
                         <Input

@@ -1,32 +1,22 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Manrope, IBM_Plex_Mono } from "next/font/google";
+import { Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-import "@/lib/theme-init";
 import { Sidebar } from "@/components/Sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeProvider, THEME_INIT_SCRIPT } from "@/components/ThemeProvider";
 import { UpdateChecker } from "@/components/UpdateChecker";
 
-const cormorant = Cormorant_Garamond({
+const inter = Inter({
     subsets: ["latin"],
-    variable: "--font-cormorant",
+    variable: "--font-inter",
     display: "swap",
-    weight: ["300", "400", "500", "600", "700"],
-    style: ["normal", "italic"],
-});
-
-const manrope = Manrope({
-    subsets: ["latin"],
-    variable: "--font-manrope",
-    display: "swap",
-    weight: ["300", "400", "500", "600"],
 });
 
 const ibmPlexMono = IBM_Plex_Mono({
     subsets: ["latin"],
     variable: "--font-ibm-mono",
     display: "swap",
-    weight: ["300", "400", "500"],
+    weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -40,8 +30,12 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="en">
-            <body className={`${cormorant.variable} ${manrope.variable} ${ibmPlexMono.variable} bg-background text-foreground antialiased`}>
+        <html lang="en" suppressHydrationWarning>
+            <head>
+                {/* Applies the saved theme before first paint to avoid a light flash in dark mode */}
+                <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+            </head>
+            <body className={`${inter.variable} ${ibmPlexMono.variable} bg-background text-foreground antialiased`}>
                 <ThemeProvider>
                     <TooltipProvider>
                         <div className="flex h-screen overflow-hidden">

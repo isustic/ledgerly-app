@@ -50,9 +50,7 @@ export function WelcomeDashboard() {
                 setProgress(100);
 
                 // Navigate to upload page with the new dataset
-                setTimeout(() => {
-                    router.push(`/upload?dataset=${result.id}`);
-                }, 400);
+                router.push(`/upload?dataset=${result.id}`);
             } catch (err) {
                 setError(String(err));
                 setIsIngesting(false);
@@ -85,7 +83,7 @@ export function WelcomeDashboard() {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="bg-background">
             <div className="container mx-auto px-4 py-16">
                 {/* Hero Section */}
                 <div className="text-center mb-16">
@@ -145,7 +143,7 @@ export function WelcomeDashboard() {
                     {features.map((feature, index) => (
                         <Card
                             key={index}
-                            className="border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card/80 hover:border-primary/30 transition-all duration-300"
+                            className="border-border/50 bg-card hover:bg-card/80 hover:border-primary/30 transition-all duration-300"
                         >
                             <CardContent className="p-6">
                                 <div className="flex flex-col items-center text-center">

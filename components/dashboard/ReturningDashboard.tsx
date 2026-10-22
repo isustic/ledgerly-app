@@ -142,9 +142,7 @@ export function ReturningDashboard({ datasets }: ReturningDashboardProps) {
 
                 // Set as last opened and navigate to upload page
                 setLastOpenedDataset(result.id);
-                setTimeout(() => {
-                    router.push(`/upload?dataset=${result.id}`);
-                }, 400);
+                router.push(`/upload?dataset=${result.id}`);
             } catch (err) {
                 setUploadError(String(err));
                 setIsIngesting(false);
@@ -192,7 +190,7 @@ export function ReturningDashboard({ datasets }: ReturningDashboardProps) {
     ] : [];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="bg-background">
             <div className="container mx-auto px-4 py-8">
                 {/* Welcome Header */}
                 <div className="mb-8">
@@ -244,10 +242,10 @@ export function ReturningDashboard({ datasets }: ReturningDashboardProps) {
                         <Card
                             key={action.label}
                             className={cn(
-                                "cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1",
+                                "cursor-pointer transition-colors duration-150 hover:border-primary/50 active:scale-[0.99]",
                                 action.primary
-                                    ? "border-primary/50 bg-gradient-to-br from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10"
-                                    : "border-border/50 bg-card/50 hover:bg-card/80",
+                                    ? "border-primary/40 bg-primary/5 hover:bg-primary/10"
+                                    : "border-border bg-card hover:bg-muted/50",
                                 isIngesting && "pointer-events-none opacity-50"
                             )}
                             onClick={action.onClick}

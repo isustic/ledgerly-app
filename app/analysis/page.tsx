@@ -13,7 +13,7 @@ const workspaces = [
 export default function AnalysisPage() {
     return (
         <div className="flex flex-col h-full bg-background/50 mesh-bg">
-            <div className="h-14 px-6 flex items-center gap-3 border-b border-border/50 bg-card/30 backdrop-blur-sm">
+            <div className="h-14 px-6 flex items-center gap-3 border-b border-border/50 bg-card">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
                     <GitCompare className="w-4 h-4 text-primary" />
                 </div>

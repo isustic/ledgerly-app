@@ -10,6 +10,7 @@
 //! before being used in SQL queries to prevent injection.
 
 use crate::db::{DbState, schema::sanitize_col_name};
+use tauri::{AppHandle, Manager};
 use rusqlite::{params, Row};
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
@@ -102,7 +103,17 @@ pub struct PivotRow {
 /// For true pivot tables (column values becoming headers), a more complex
 /// query structure is needed - this is handled in build_pivot_query.
 #[tauri::command]
-pub fn run_pivot_query(
+pub async fn run_pivot_query(
+    dataset_id: i64,
+    config: PivotConfig,
+    app: AppHandle,
+) -> Result<PivotResult, String> {
+    tauri::async_runtime::spawn_blocking(move || run_pivot_query_sync(dataset_id, config, app.state::<DbState>()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn run_pivot_query_sync(
     dataset_id: i64,
     config: PivotConfig,
     db: State<'_, DbState>,

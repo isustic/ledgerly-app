@@ -46,7 +46,7 @@ export default function BlendPage() {
 
     return (
         <div className="flex flex-col h-full bg-background/50 mesh-bg">
-            <div className="h-14 px-6 flex items-center justify-between border-b border-border/50 bg-card/30 backdrop-blur-sm">
+            <div className="h-14 px-6 flex items-center justify-between border-b border-border/50 bg-card">
                 <div className="flex items-center gap-2">
                     <Link href="/analysis">
                         <Button variant="ghost" size="icon" className="h-8 w-8">

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Sprout, BarChart3, Settings2, Database, History, PanelLeftClose, PanelLeft, FileSpreadsheet, Home, List, GitCompare, Table2, Users } from "lucide-react";
+import { Settings2, Database, History, PanelLeftClose, PanelLeft, FileSpreadsheet, Home, List, GitCompare, Table2, Users, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -33,170 +33,88 @@ export function Sidebar() {
 
     // Load collapsed state from localStorage on mount
     useEffect(() => {
-        const stored = localStorage.getItem("sidebar-collapsed");
-        if (stored !== null) {
-            setCollapsed(stored === "true");
+        try {
+            const stored = localStorage.getItem("sidebar-collapsed");
+            if (stored !== null) setCollapsed(stored === "true");
+        } catch {
+            // Storage unavailable: keep the default expanded state.
         }
     }, []);
 
-    // Save collapsed state to localStorage when it changes
-    useEffect(() => {
-        localStorage.setItem("sidebar-collapsed", String(collapsed));
-    }, [collapsed]);
-
-    const toggleCollapsed = () => setCollapsed((prev) => !prev);
+    const toggleCollapsed = () => {
+        setCollapsed((prev) => {
+            const next = !prev;
+            try {
+                localStorage.setItem("sidebar-collapsed", String(next));
+            } catch {
+                // Ignore: the toggle still works for this session.
+            }
+            return next;
+        });
+    };
 
     return (
         <aside
             className={cn(
-                "bg-card/60 border-r border-border/40 backdrop-blur-md flex flex-col relative overflow-hidden transition-all duration-300 ease-in-out",
-                collapsed ? "w-20" : "w-64"
+                "flex h-full shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-150 ease-out",
+                collapsed ? "w-16" : "w-60"
             )}
         >
-            {/* Botanical corner accent */}
-            <div className="absolute top-0 right-0 w-32 h-32 opacity-5 pointer-events-none">
-                <svg viewBox="0 0 100 100" className="w-full h-full">
-                    <path
-                        d="M75,10 Q85,20 80,35 Q75,50 85,65 Q90,75 80,85 Q70,90 55,85 Q40,80 25,85"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="0.5"
-                        className="text-primary"
-                    />
-                    <path
-                        d="M85,5 Q95,15 90,30 Q85,45 95,60 Q100,70 90,80"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="0.5"
-                        className="text-primary"
-                        opacity="0.6"
-                    />
-                    <ellipse cx="70" cy="70" rx="20" ry="10" fill="none" stroke="currentColor" strokeWidth="0.3" className="text-primary" opacity="0.4" />
-                </svg>
-            </div>
+            {/* Brand: the icon tile is the only brand moment in the chrome */}
+            <div className={cn("flex h-14 shrink-0 items-center border-b border-sidebar-border", collapsed ? "justify-center px-2" : "justify-between px-3")}>
+                <Link href="/" className={cn("flex min-w-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring", collapsed && "hidden")}>
+                    <img src="/logo.png" alt="" width={28} height={28} className="size-7 shrink-0 rounded-md" />
+                    <span className="truncate text-sm font-semibold tracking-tight text-foreground">Ledgerly</span>
+                </Link>
 
-            {/* Logo with collapse toggle */}
-            <div className="h-16 flex items-center justify-between px-3 border-b border-border/40 relative z-10">
-                <div className={cn(
-                    "flex items-center transition-all duration-300 relative",
-                    collapsed ? "justify-center w-full group" : "gap-2.5"
-                )}>
-                    <div className="w-9 h-9 flex items-center justify-center shrink-0">
-                        <img src="/logo.png" alt="Ledgerly Logo" className="w-full h-full object-contain drop-shadow-sm group-hover:opacity-0 transition-opacity duration-200" />
-                    </div>
-                    <div className={cn(
-                        "transition-opacity duration-200 overflow-hidden",
-                        collapsed ? "w-0 opacity-0" : "opacity-100"
-                    )}>
-                        <div>
-                            <span className="text-base font-medium tracking-tight text-gradient-botanical font-display block">
-                                Ledgerly
-                            </span>
-                            <span className="text-[9px] text-muted-foreground/60 uppercase tracking-[0.2em] font-body block">
-                                Data Refined
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Collapse toggle button - hidden when collapsed, shown on logo hover */}
-                    <button
-                        onClick={toggleCollapsed}
-                        className={cn(
-                            "shrink-0 rounded-lg flex items-center justify-center transition-all duration-200",
-                            "hover:bg-accent/20 hover:text-accent text-muted-foreground bg-card",
-                            "w-8 h-8",
-                            collapsed ? "opacity-0 group-hover:opacity-100 absolute" : "opacity-100 hidden"
-                        )}
-                        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-                    >
-                        <PanelLeft size={18} />
-                    </button>
-                </div>
-
-                {/* Collapse button - shown when expanded */}
-                {!collapsed && (
-                    <button
-                        onClick={toggleCollapsed}
-                        className="shrink-0 rounded-lg flex items-center justify-center transition-all duration-200 hover:bg-accent/20 hover:text-accent text-muted-foreground w-8 h-8"
-                        aria-label="Collapse sidebar"
-                    >
-                        <PanelLeftClose size={18} />
-                    </button>
-                )}
+                <button
+                    type="button"
+                    onClick={toggleCollapsed}
+                    className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                >
+                    {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
+                </button>
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-3 py-6 space-y-1 relative z-10">
-                {navItems.map(({ href, label, icon: Icon }, idx) => {
+            <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
+                {navItems.map(({ href, label, icon: Icon }) => {
                     const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
                     return (
                         <Link
                             key={href}
                             href={href}
+                            title={collapsed ? label : undefined}
+                            aria-label={collapsed ? label : undefined}
+                            aria-current={active ? "page" : undefined}
                             className={cn(
-                                "group relative flex items-center rounded-xl text-sm font-medium transition-all duration-300",
-                                collapsed ? "justify-center h-12 px-3" : "gap-3 px-3.5 py-3",
+                                "relative flex h-9 items-center rounded-md text-sm font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.99]",
+                                collapsed ? "justify-center" : "gap-3 px-3",
                                 active
-                                    ? "shadow-md"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                    ? "bg-accent text-accent-foreground"
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                             )}
-                            style={{
-                                animationDelay: `${idx * 50}ms`,
-                            }}
                         >
-                            {active ? (
-                                <>
-                                    {/* Active state with champagne gold gradient */}
-                                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-accent to-[#D4B896] animate-shimmer" />
-                                    <div className="absolute inset-0 rounded-xl shadow-lg shadow-accent/20" />
-                                </>
-                            ) : (
-                                <span className="absolute inset-0 rounded-xl bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                            )}
-
-                            <Icon
-                                size={18}
-                                className={cn(
-                                    "transition-colors relative z-10 shrink-0",
-                                    active ? "text-[#1A3C34]" : "text-muted-foreground group-hover:text-foreground"
-                                )}
-                            />
-                            <span className={cn(
-                                "relative z-10 transition-all duration-200 overflow-hidden",
-                                collapsed ? "w-0 opacity-0" : "opacity-100",
-                                active ? "text-[#1A3C34] font-semibold" : ""
-                            )}>{label}</span>
+                            {active && <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-primary" aria-hidden />}
+                            <Icon size={18} className="shrink-0" />
+                            {!collapsed && <span className="truncate">{label}</span>}
                         </Link>
                     );
                 })}
             </nav>
 
             {/* Footer */}
-            <div className={cn(
-                "border-t border-border/40 relative z-10 transition-all duration-300",
-                collapsed ? "px-3 py-4 flex justify-center" : "px-5 py-4"
-            )}>
-                <div className={cn(
-                    "flex items-center justify-between w-full",
-                    collapsed ? "flex-col gap-3" : ""
-                )}>
-                    <div className={cn(
-                        "transition-all duration-200 overflow-hidden",
-                        collapsed ? "w-0 h-0 opacity-0" : "opacity-100"
-                    )}>
-                        <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-body">Version</p>
-                        <p className="text-xs font-data text-muted-foreground">{appVersion && `v${appVersion}`}</p>
+            <div className={cn("shrink-0 border-t border-sidebar-border px-3 py-3", collapsed && "flex justify-center px-2")}>
+                {collapsed ? (
+                    <span className="font-data text-[10px] text-muted-foreground">{appVersion && `v${appVersion}`}</span>
+                ) : (
+                    <div>
+                        <p className="text-[11px] font-medium text-muted-foreground">Version</p>
+                        <p className="font-data text-xs text-foreground">{appVersion && `v${appVersion}`}</p>
                     </div>
-
-                    <div className={cn(
-                        "flex items-center gap-2",
-                        collapsed ? "gap-0" : "gap-1.5"
-                    )}>
-                        <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                        <div className="w-1.5 h-1.5 rounded-full bg-chart-2/50" />
-                        <div className="w-1.5 h-1.5 rounded-full bg-chart-4/40" />
-                    </div>
-                </div>
+                )}
             </div>
         </aside>
     );

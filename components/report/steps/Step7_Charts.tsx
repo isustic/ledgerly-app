@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { SERIES_COLORS } from "@/lib/chart-data";
 import {
   BarChart,
   Bar,
@@ -48,7 +49,7 @@ const CHART_TYPES = [
   { type: "area" as const, label: "Area", icon: AreaChartIcon, description: "Filled line" },
 ];
 
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
+const COLORS = SERIES_COLORS;
 
 export function Step7_Charts({
   result,
@@ -190,7 +191,7 @@ export function Step7_Charts({
                 labelLine={false}
                 label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
                 outerRadius={120}
-                fill="#8884d8"
+                fill={COLORS[0]}
                 dataKey={pieSeries.key}
               >
                 {data.map((entry, index) => (

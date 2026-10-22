@@ -45,7 +45,7 @@ export default function TrendsPage() {
 
     return (
         <div className="flex flex-col h-full bg-background/50 mesh-bg">
-            <div className="h-14 px-6 flex items-center gap-3 border-b border-border/50 bg-card/30 backdrop-blur-sm">
+            <div className="h-14 px-6 flex items-center gap-3 border-b border-border/50 bg-card">
                 <Link href="/analysis">
                     <Button variant="ghost" size="icon" className="h-8 w-8">
                         <ArrowLeft className="h-4 w-4" />

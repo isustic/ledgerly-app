@@ -1,4 +1,5 @@
 use serde::Serialize;
+use tauri::{AppHandle, Manager};
 use tauri::State;
 use rusqlite::params;
 use crate::db::DbState;
@@ -74,7 +75,17 @@ pub fn delete_formula(
 }
 
 #[tauri::command]
-pub fn test_formula(
+pub async fn test_formula(
+    dataset_id: i64,
+    formula_sql: String,
+    app: AppHandle,
+) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || test_formula_sync(dataset_id, formula_sql, app.state::<DbState>()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn test_formula_sync(
     dataset_id: i64,
     formula_sql: String,
     state: State<DbState>,

@@ -24,7 +24,7 @@ export function SparklineChart({ data, width = 200, height = 50 }: SparklineChar
 
         ctx.clearRect(0, 0, width, height);
         ctx.beginPath();
-        ctx.strokeStyle = "#22c55e";
+        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--primary").trim() || "#1f7a5c";
         ctx.lineWidth = 2;
 
         data.forEach((value, i) => {

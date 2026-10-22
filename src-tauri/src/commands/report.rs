@@ -8,6 +8,7 @@
 //! before being used in SQL queries to prevent injection.
 
 use crate::commands::queries::{SimpleQuery, FilterValue};
+use tauri::{AppHandle, Manager};
 use crate::db::{DbState, schema::sanitize_col_name};
 use rusqlite::params;
 use std::time::Instant;
@@ -72,7 +73,16 @@ const ALLOWED_FUNCS: &[&str] = &["SUM", "COUNT", "AVG", "MIN", "MAX"];
 
 /// Executes a SimpleQuery and returns the result as JSON rows.
 #[tauri::command]
-pub fn run_report(
+pub async fn run_report(
+    query: SimpleQuery,
+    app: AppHandle,
+) -> Result<Vec<serde_json::Value>, String> {
+    tauri::async_runtime::spawn_blocking(move || run_report_sync(query, app.state::<DbState>()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn run_report_sync(
     query: SimpleQuery,
     db: State<'_, DbState>,
 ) -> Result<Vec<serde_json::Value>, String> {

@@ -138,7 +138,7 @@ export function FunctionReference({ onInsert }: FunctionReferenceProps) {
                     filteredCategories.map((category) => (
                         <div key={category.name}>
                             {/* Sticky Category Header */}
-                            <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm py-1 -mx-1 px-1 border-b border-border/40 mb-2">
+                            <div className="sticky top-0 z-10 bg-card py-1 -mx-1 px-1 border-b border-border/40 mb-2">
                                 <p className="text-[10px] font-medium flex items-center gap-1 text-muted-foreground">
                                     <span>{category.icon}</span>
                                     <span>{category.name}</span>

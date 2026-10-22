@@ -1,4 +1,5 @@
 use crate::db::{DbState, schema::sanitize_col_name};
+use tauri::{AppHandle, Manager};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -135,7 +136,18 @@ pub struct PagedRows {
 }
 
 #[tauri::command]
-pub fn get_rows(
+pub async fn get_rows(
+    dataset_id: i64,
+    page: i64,
+    page_size: i64,
+    app: AppHandle,
+) -> Result<PagedRows, String> {
+    tauri::async_runtime::spawn_blocking(move || get_rows_sync(dataset_id, page, page_size, app.state::<DbState>()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn get_rows_sync(
     dataset_id: i64,
     page: i64,
     page_size: i64,
@@ -224,7 +236,19 @@ fn escape_like(query: &str) -> String {
 }
 
 #[tauri::command]
-pub fn search_rows(
+pub async fn search_rows(
+    dataset_id: i64,
+    query: String,
+    page: i64,
+    page_size: i64,
+    app: AppHandle,
+) -> Result<PagedRows, String> {
+    tauri::async_runtime::spawn_blocking(move || search_rows_sync(dataset_id, query, page, page_size, app.state::<DbState>()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn search_rows_sync(
     dataset_id: i64,
     query: String,
     page: i64,

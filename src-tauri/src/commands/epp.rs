@@ -8,7 +8,7 @@ use rusqlite::params;
 use rust_xlsxwriter::{Format, FormatBorder, Workbook};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_dialog::DialogExt;
 
 /// Unique agent information with client count
@@ -677,7 +677,18 @@ fn generate_report_rows(
 
 /// Generate EPro report for a specific agent, year, and dataset
 #[tauri::command]
-pub fn generate_epp_report(
+pub async fn generate_epp_report(
+    agent_name: String,
+    year: Option<i32>,
+    dataset_id: Option<i64>,
+    app: AppHandle,
+) -> Result<EppReportResult, String> {
+    tauri::async_runtime::spawn_blocking(move || generate_epp_report_sync(agent_name, year, dataset_id, app.state::<DbState>()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn generate_epp_report_sync(
     agent_name: String,
     year: Option<i32>,
     dataset_id: Option<i64>,
