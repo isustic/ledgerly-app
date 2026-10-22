@@ -55,15 +55,6 @@ export interface Template {
   config_json: string;
 }
 
-// UI State
-export type StepNumber = 1 | 2 | 3 | 4 | 5 | 6;
-
-export interface StepState {
-  currentStep: StepNumber;
-  canGoNext: boolean;
-  canGoBack: boolean;
-}
-
 // Result types
 export interface ReportResult {
   rows: Record<string, unknown>[];
