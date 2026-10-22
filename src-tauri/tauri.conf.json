@@ -45,7 +45,7 @@
     "updater": {
       "active": true,
       "endpoints": [
-        "https://github.com/isustic/sift-app/releases/latest/download/latest.json"
+        "https://github.com/isustic/ledgerly-app/releases/latest/download/latest.json"
       ],
       "dialog": false,
       "windows": { "installMode": "passive" },

@@ -1,0 +1,7 @@
+# Ledgerly icon
+
+`ledgerly-icon.png` is the original artwork generated with the built-in image generation tool. `ledgerly-icon-1024.png` is its normalized export. Run `npm run icons:generate` from the project root to update all app icon assets.
+
+## Generation prompt
+
+Use case: logo-brand. Create a production master desktop application icon for Ledgerly, a refined Excel data analysis and reporting app. Single icon, square canvas, front-on, no presentation mockup. A deep forest green (#1A3C34) rounded-square tile occupying about 88% of the canvas, centered, with transparent exterior corners and margins. Center a bold warm cream (#FAF9F6) geometric capital L: thick upright on the left joined to a thick long baseline at the bottom. Inside the open upper-right region of the L, two separate short horizontal cream strokes stacked evenly suggest rows in a ledger. The three horizontal rows (two short strokes and the long L baseline) must have generous green separation so it reads clearly at 32 pixels. Precise balanced simple geometry, softly rounded corners on the strokes, restrained shallow embossed depth and very subtle tile lighting for a polished macOS app feel, predominantly flat two-color graphic. Large strong silhouette, generous internal padding, optically centered. No words, no tiny detail, no charts, no paper illustration, no Excel logos, no gold, no neon, no extra symbols. This must be one finished icon with actual transparent background outside the green rounded square.
