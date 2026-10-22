@@ -1,17 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { getLastOpenedDataset } from "@/lib/dataset-tracking";
-import { setLastOpenedDataset } from "@/lib/dataset-tracking";
+import { getLastOpenedDataset, setLastOpenedDataset } from "@/lib/dataset-tracking";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { ArrowRight, FileSpreadsheet, BarChart3, Plus, TrendingUp, Database, Clock, Sparkles } from "lucide-react";
+import { ArrowRight, FileSpreadsheet, BarChart3, TrendingUp, Database, Clock, History, Table2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { safeInvoke, safeOpen, safeListen } from "@/lib/tauri";
-
-type UnlistenFn = () => void;
+import { safeInvoke } from "@/lib/tauri";
+import { UploadCard } from "@/components/dashboard/UploadCard";
 
 interface Dataset {
     id: number;
@@ -29,274 +26,219 @@ interface UsageStats {
     most_used_columns: Array<{ column_name: string; usage_count: number }>;
 }
 
-interface IngestProgress {
-    pct: number;
-    rows_done: number;
-}
-
 interface ReturningDashboardProps {
     datasets: Dataset[];
 }
 
+const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
 export function ReturningDashboard({ datasets }: ReturningDashboardProps) {
     const router = useRouter();
-    const [lastDataset, setLastDataset] = useState<Dataset | null>(null);
     const [stats, setStats] = useState<UsageStats | null>(null);
-    const [lastAccessed, setLastAccessed] = useState<string>("");
 
-    // Upload state
-    const [isIngesting, setIsIngesting] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [rowsDone, setRowsDone] = useState(0);
-    const [uploadError, setUploadError] = useState<string | null>(null);
-    const unlistenRef = useRef<UnlistenFn | null>(null);
+    const sorted = useMemo(
+        () => [...datasets].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+        [datasets]
+    );
+    const recent = sorted.slice(0, 5);
 
-    const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit"
-        });
-    };
-
-    const loadDashboardData = async () => {
-        // Get last opened from localStorage
+    const lastDataset = useMemo<Dataset | null>(() => {
         const lastId = getLastOpenedDataset();
-
-        // Find the dataset
-        let selected: Dataset | null = null;
-        if (lastId) {
-            selected = datasets.find((d) => d.id === lastId) || null;
-        }
-
-        // Fallback to most recent if no last opened
-        if (!selected && datasets.length > 0) {
-            selected = datasets.sort((a, b) =>
-                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            )[0];
-        }
-
-        setLastDataset(selected);
-        if (selected) {
-            setLastAccessed(formatDate(selected.created_at));
-        }
-
-        // Load stats
-        try {
-            const statsData = await safeInvoke<UsageStats>("get_usage_stats");
-            setStats(statsData);
-        } catch (err) {
-            console.error("Failed to load stats:", err);
-        }
-    };
+        return (lastId && datasets.find((d) => d.id === lastId)) || sorted[0] || null;
+    }, [datasets, sorted]);
 
     useEffect(() => {
-        loadDashboardData();
+        safeInvoke<UsageStats>("get_usage_stats")
+            .then(setStats)
+            .catch((err) => console.error("Failed to load stats:", err));
     }, [datasets]);
 
-    const handleContinue = useCallback(() => {
-        if (lastDataset) {
-            router.push(`/upload?dataset=${lastDataset.id}`);
-        }
-    }, [lastDataset, router]);
-
-    const handleNewReport = useCallback(() => {
-        if (lastDataset) {
-            router.push(`/report?dataset=${lastDataset.id}`);
-        }
-    }, [lastDataset, router]);
-
-    const handleEPro = useCallback(() => {
-        if (lastDataset) {
-            router.push(`/epp?dataset=${lastDataset.id}`);
-        }
-    }, [lastDataset, router]);
-
-    const handleUpload = useCallback(async () => {
-        setUploadError(null);
-        const selected = await safeOpen({
-            filters: [{ name: "Excel File", extensions: ["xlsx"] }],
-            multiple: false,
-        });
-
-        if (typeof selected === "string") {
-            setIsIngesting(true);
-            setProgress(0);
-            setRowsDone(0);
-
-            // Subscribe to progress events
-            unlistenRef.current = await safeListen<IngestProgress>("ingest_progress", (ev) => {
-                setProgress(ev.payload.pct);
-                setRowsDone(ev.payload.rows_done);
-            });
-
-            try {
-                const datasetName = selected.split("/").pop()?.replace(".xlsx", "") ?? "Dataset";
-                const result = await safeInvoke<{ id: number }>("ingest_file", {
-                    path: selected,
-                    datasetName,
-                });
-                setProgress(100);
-
-                // Set as last opened and navigate to upload page
-                setLastOpenedDataset(result.id);
-                router.push(`/upload?dataset=${result.id}`);
-            } catch (err) {
-                setUploadError(String(err));
-                setIsIngesting(false);
-                unlistenRef.current?.();
-            }
-        }
-    }, [router]);
+    const openDataset = useCallback(
+        (id: number) => {
+            setLastOpenedDataset(id);
+            router.push(`/upload?dataset=${id}`);
+        },
+        [router]
+    );
 
     const quickActions = [
         {
-            label: "Continue",
-            icon: ArrowRight,
-            onClick: handleContinue,
-            primary: true,
-            description: "Open data table"
-        },
-        {
-            label: "New Report",
+            label: "New report",
+            description: "Group, calculate, chart",
             icon: BarChart3,
-            onClick: handleNewReport,
-            primary: false,
-            description: "Build a report"
+            tone: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+            href: lastDataset ? `/report?dataset=${lastDataset.id}` : null,
         },
         {
-            label: "EPro Analysis",
+            label: "EPro analysis",
+            description: "Agent and program reports",
             icon: TrendingUp,
-            onClick: handleEPro,
-            primary: false,
-            description: "EPro reports"
+            tone: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+            href: lastDataset ? `/epp?dataset=${lastDataset.id}` : null,
         },
         {
-            label: "Upload New",
-            icon: Plus,
-            onClick: handleUpload,
-            primary: false,
-            description: "Add dataset"
-        }
+            label: "History",
+            description: "All past imports",
+            icon: History,
+            tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+            href: "/istoric",
+        },
     ];
 
-    const statCards = stats ? [
-        { label: "Datasets", value: stats.datasets_count, icon: Database },
-        { label: "Total Rows", value: stats.total_rows.toLocaleString(), icon: FileSpreadsheet },
-        { label: "Reports Run", value: stats.reports_run, icon: BarChart3 },
-        { label: "Last Activity", value: lastAccessed, icon: Clock }
-    ] : [];
+    const statCards = stats
+        ? [
+              { label: "Datasets", value: stats.datasets_count.toLocaleString(), icon: Database, tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+              { label: "Total rows", value: stats.total_rows.toLocaleString(), icon: Table2, tone: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
+              { label: "Reports run", value: stats.reports_run.toLocaleString(), icon: BarChart3, tone: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
+              { label: "Last activity", value: lastDataset ? formatDate(lastDataset.created_at) : "—", icon: Clock, tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+          ]
+        : [];
 
     return (
         <div className="bg-background">
-            <div className="container mx-auto px-4 py-8">
-                {/* Welcome Header */}
+            <div className="container mx-auto max-w-6xl px-4 py-8 sm:py-10">
+                {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold mb-2">Welcome back</h1>
-                    {lastDataset && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <FileSpreadsheet className="w-4 h-4" />
-                            <span className="font-medium">{lastDataset.name}</span>
-                            <Badge variant="secondary" className="text-xs">
-                                {lastDataset.row_count.toLocaleString()} rows
-                            </Badge>
-                            {lastAccessed && (
-                                <span className="text-sm">· Last opened {lastAccessed}</span>
-                            )}
-                        </div>
-                    )}
+                    <p className="mb-1 text-sm font-medium text-primary">Welcome back</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Your data, at a glance</h1>
                 </div>
 
-                {/* Upload Progress */}
-                {isIngesting && (
-                    <div className="mb-6 p-4 rounded-lg bg-card/50 border border-border/50 animate-fade-in">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-muted-foreground flex items-center gap-2">
-                                <Sparkles size={14} className="animate-pulse text-primary" />
-                                Uploading new dataset…
-                            </span>
-                            <span className="text-sm font-data text-primary">{progress}%</span>
-                        </div>
-                        <Progress value={progress} className="h-2" />
-                        <p className="text-xs text-muted-foreground mt-1 font-data">
-                            {rowsDone.toLocaleString()} rows processed
-                        </p>
-                    </div>
-                )}
-
-                {/* Upload Error */}
-                {uploadError && (
-                    <div className="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
-                        <p className="text-sm text-destructive flex items-start gap-2">
-                            <span>⚠</span>
-                            <span>{uploadError}</span>
-                        </p>
-                    </div>
-                )}
-
-                {/* Quick Actions */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    {quickActions.map((action) => (
+                <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-5">
+                    {/* Continue hero */}
+                    {lastDataset && (
                         <Card
-                            key={action.label}
-                            className={cn(
-                                "cursor-pointer transition-colors duration-150 hover:border-primary/50 active:scale-[0.99]",
-                                action.primary
-                                    ? "border-primary/40 bg-primary/5 hover:bg-primary/10"
-                                    : "border-border bg-card hover:bg-muted/50",
-                                isIngesting && "pointer-events-none opacity-50"
-                            )}
-                            onClick={action.onClick}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => openDataset(lastDataset.id)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    openDataset(lastDataset.id);
+                                }
+                            }}
+                            className="group cursor-pointer lg:col-span-3 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
-                            <CardContent className="p-4">
-                                <div className="flex items-center gap-3">
-                                    <div className={cn(
-                                        "w-10 h-10 rounded-lg flex items-center justify-center",
-                                        action.primary ? "bg-primary/20" : "bg-muted"
-                                    )}>
-                                        <action.icon className={cn(
-                                            "w-5 h-5",
-                                            action.primary ? "text-primary" : "text-muted-foreground"
-                                        )} />
+                            <CardContent className="flex h-full flex-col justify-between gap-6 p-6">
+                                <div className="flex items-start gap-4">
+                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/25">
+                                        <FileSpreadsheet className="h-6 w-6" />
                                     </div>
-                                    <div>
-                                        <p className={cn(
-                                            "font-semibold",
-                                            action.primary ? "text-primary" : ""
-                                        )}>
-                                            {action.label}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {action.description}
-                                        </p>
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-medium uppercase tracking-wide text-primary">Continue where you left off</p>
+                                        <p className="truncate text-xl font-semibold">{lastDataset.name}</p>
+                                        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                                            <Badge variant="secondary" className="font-data text-xs">
+                                                {lastDataset.row_count.toLocaleString()} rows
+                                            </Badge>
+                                            <span className="flex items-center gap-1">
+                                                <Clock className="h-3.5 w-3.5" />
+                                                {formatDate(lastDataset.created_at)}
+                                            </span>
+                                        </div>
                                     </div>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                                    Open data table
+                                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
                                 </div>
                             </CardContent>
                         </Card>
-                    ))}
+                    )}
+
+                    {/* Import */}
+                    <div className={cn(lastDataset ? "lg:col-span-2" : "lg:col-span-5")}>
+                        <UploadCard compact title="Add a dataset" subtitle="Drop an .xlsx file or browse" />
+                    </div>
                 </div>
 
-                {/* Stats Grid */}
+                {/* Quick actions */}
+                <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    {quickActions.map((action) => {
+                        const disabled = action.href === null;
+                        return (
+                            <Card
+                                key={action.label}
+                                role="button"
+                                tabIndex={disabled ? -1 : 0}
+                                aria-disabled={disabled}
+                                onClick={() => !disabled && router.push(action.href!)}
+                                onKeyDown={(e) => {
+                                    if (!disabled && (e.key === "Enter" || e.key === " ")) {
+                                        e.preventDefault();
+                                        router.push(action.href!);
+                                    }
+                                }}
+                                className={cn(
+                                    "group border-border/60 bg-card transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                    disabled ? "opacity-50" : "cursor-pointer hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                                )}
+                            >
+                                <CardContent className="flex items-center gap-4 p-4">
+                                    <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", action.tone)}>
+                                        <action.icon className="h-5 w-5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="font-semibold">{action.label}</p>
+                                        <p className="text-xs text-muted-foreground">{action.description}</p>
+                                    </div>
+                                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100" />
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+                </div>
+
+                {/* Stats */}
                 {statCards.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
                         {statCards.map((stat) => (
-                            <Card key={stat.label} className="border-border/50 bg-card/50">
-                                <CardContent className="p-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                            <stat.icon className="w-5 h-5 text-primary" />
-                                        </div>
-                                        <div>
-                                            <p className="text-2xl font-bold">{stat.value}</p>
-                                            <p className="text-xs text-muted-foreground">{stat.label}</p>
-                                        </div>
+                            <Card key={stat.label} className="border-border/60 bg-card">
+                                <CardContent className="flex items-center gap-3 p-4">
+                                    <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", stat.tone)}>
+                                        <stat.icon className="h-5 w-5" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="font-data truncate text-xl font-bold">{stat.value}</p>
+                                        <p className="text-xs text-muted-foreground">{stat.label}</p>
                                     </div>
                                 </CardContent>
                             </Card>
                         ))}
                     </div>
+                )}
+
+                {/* Recent datasets */}
+                {recent.length > 0 && (
+                    <section>
+                        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Recent imports</h2>
+                        <Card className="border-border/60 bg-card">
+                            <ul className="divide-y divide-border">
+                                {recent.map((d) => (
+                                    <li key={d.id}>
+                                        <button
+                                            type="button"
+                                            onClick={() => openDataset(d.id)}
+                                            className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none"
+                                        >
+                                            <FileSpreadsheet className="h-4 w-4 shrink-0 text-primary" />
+                                            <span className="min-w-0 flex-1 truncate text-sm font-medium">{d.name}</span>
+                                            <span className="font-data hidden text-xs text-muted-foreground sm:block">
+                                                {d.row_count.toLocaleString()} rows
+                                            </span>
+                                            <span className="hidden text-xs text-muted-foreground md:block">{formatDate(d.created_at)}</span>
+                                            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </Card>
+                    </section>
                 )}
             </div>
         </div>
